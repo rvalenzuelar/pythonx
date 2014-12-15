@@ -1,4 +1,4 @@
 pythonx
 =======
 
-some code to read files and data analysis
+some code for reading files and data analysis
