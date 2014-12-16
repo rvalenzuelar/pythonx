@@ -14,6 +14,8 @@ veloc=data[1:]
 nanvalue=-32768.
 veloc[veloc==nanvalue]=np.nan
 
+NyqVel=16.09375 #m/s
+
 index=range(40,41,1)
 for i in index:
     plt.plot(azim,veloc[i])
