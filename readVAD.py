@@ -11,8 +11,10 @@ np.set_printoptions(precision=1)
 np.set_printoptions(suppress=True)
 
 # open/close the file and retrieves a numpy array
-data=np.loadtxt('vad.1040216150010.NOAA-D.0.0.5_PPI_v2_V3',
-                dtype='float')
+
+vadfile='vad.1040216150010.NOAA-D.0.0.5_PPI_v2_V3'
+#vadfile='vad.1040216164949.NOAA-D.0.0.5_PPI_v161_V3'
+data=np.loadtxt(vadfile,dtype='float')
 
 # command-line input arguments
 cmdargs=sys.argv
@@ -59,8 +61,19 @@ for r in np.arange(rows-1):
         # probable that it is not the zero isodop index
         lowlim=np.round(cols/3)
         upplim=np.round(2*cols/3)
+        #print lowlim,upplim, idx
+        #while status==False:
         if idx<lowlim or idx>upplim:
-            idx = np.nanargmin((np.absolute(veloc[r-1])))            
+            #way 1
+            #idx = np.nanargmin((np.absolute(veloc[r-1])))
+
+            #way 2
+            #x=np.argsort(np.absolute(veloc[r]))
+            #idx=x[1]
+            
+            #way 3
+            idx = np.nanargmin((np.absolute(veloc[r,lowlim:upplim])))
+            idx = idx+lowlim
         upper_zero_thres=2.5
         lower_zero_thres=-2.5
         for a in np.arange(cols-1):
@@ -69,9 +82,12 @@ for r in np.arange(rows-1):
             if a>idx and veloc[r,a]<lower_zero_thres:             
                 unveloc[r,a]=veloc[r,a]+2*NyqVel
         if r==iniring:
-            print veloc[r]
-            print veloc[r,idx], r , idx       
-            print unveloc[r]
+            print veloc[r,0:lowlim]
+            print veloc[r,lowlim:upplim]
+            print veloc[r,upplim:]            
+            print veloc[r,idx], r 
+            print lowlim, idx, upplim       
+            #print unveloc[r,0:lowlim]
 
     else:
         print "ALL NAN"
@@ -89,8 +105,9 @@ for r in np.arange(rows-1):
 #plt.grid(True)
 
 
-asp_op='10'
+asp_op='1'
 int_op='none'
+
 plt.subplot(2,1,1)
 plt.imshow(veloc[lowslice:uppslice,:],
             origin='lower',
@@ -101,6 +118,10 @@ plt.imshow(unveloc[lowslice:uppslice,:],
             origin='lower',
             aspect=asp_op,
             interpolation=int_op)
+
+#plt.imshow(unveloc,
+#            origin='lower',
+#            interpolation=int_op)
 
 plt.show()
 
