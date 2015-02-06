@@ -43,6 +43,7 @@ np.set_printoptions(threshold='nan')
 vadfile='vad.1040216171410.NOAA-D.0.0.5_PPI_v46_V3'
 
 #vadfile='vad.1040216164949.NOAA-D.0.0.5_PPI_v161_V3'
+
 data=np.loadtxt(vadfile,dtype='float')
 
 # array size
