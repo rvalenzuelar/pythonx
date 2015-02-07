@@ -75,7 +75,7 @@ yIso,xIso=np.where(interpField<1.0)
 # fits point to a curve
 zIso = np.polyfit(yIso, xIso, 2)
 p = np.poly1d(zIso)
-rangeInterp=p(np.arange(rows))
+zeroisoInterp=p(np.arange(rows))
 
 plt.figure
 
@@ -94,7 +94,7 @@ ax2=plt.imshow(interpField,
             interpolation='none')
 ax2.set_clim([0,25])
 plt.plot(xIso, yIso, 'ro')
-plt.plot(rangeInterp,np.arange(rows), 'w')
+plt.plot(zeroisoInterp,np.arange(rows), 'w')
 plt.xlim([xax0,xax1])
 plt.ylim([yax0,yax1])
 
