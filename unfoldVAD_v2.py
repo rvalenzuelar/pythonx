@@ -4,9 +4,8 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.interpolate import Rbf
-import re
-# from matplotlib import gridspec
+from scipy.interpolate import Rbf   # radial basis function module
+import re                           # regular expression module
 
 
 def run(filepath=''):
