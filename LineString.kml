@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+    <Document id="feat_1">
+        <Placemark id="feat_2">
+            <name>Grid</name>
+            <LineString id="geom_0">
+                <coordinates>18.3,-34.0,10.0 18.3,-34.1,10.0 18.2,-34.0,10.0 18.2,-34.1,10.0</coordinates>
+                <extrude>0</extrude>
+                <altitudeMode>relativeToGround</altitudeMode>
+            </LineString>
+        </Placemark>
+    </Document>
+</kml>
