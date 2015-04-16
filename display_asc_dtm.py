@@ -23,16 +23,15 @@ try:
 finally:
 	filein.close()
 
-first =1
 n=0
 linesp=[]
 for line in lines[1:-1]:
 	n=n+1
-	print "Converting to array in line: %s" % n
+	print "Converting to list array in line: %s" % n
 	linesp.append(line.split())
 
 print "Converting to numpy array"
-dtm=np.asarray(linesp,dtype=np.uint16)
+dtm=np.asarray(linesp,dtype=np.uint16) # should improve this conversion
 print dtm.shape
 
 plt.imshow(dtm)
