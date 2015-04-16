@@ -33,6 +33,7 @@ for line in lines[1:-1]:
 print "Converting to numpy array"
 dtm=np.asarray(linesp,dtype=np.uint16) # should improve this conversion
 print dtm.shape
-
-plt.imshow(dtm)
+print "Creating image"
+plt.imshow(dtm,vmin=0,vmax=1000)
+plt.colorbar()
 plt.show()
