@@ -23,7 +23,6 @@ def read_beam_coord( coord_file ):
 			# print line
 		else:
 			if "Processing" in line:
-				
 				create_kml(beam_line,coords)
 				# exit()
 				beam_line=line
@@ -40,14 +39,14 @@ def create_kml( beam_line , beam_coords ):
 	import simplekml
 	import os
 
-	# beam_name=beam_line[-40:]
 	beam_name = os.path.basename(beam_line)
 
 	kml=simplekml.Kml()
 
 	print beam_name
-		
-	for coord in beam_coords[::10]:
+	
+	jump=10	
+	for coord in beam_coords[::jump]:
 		pnt = kml.newpoint()	
 		pnt.coords=[coord]
 	pnt.style.iconstyle.icon.href = 'http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png'
