@@ -15,37 +15,45 @@
 
 
 import math
+import sys
+from os.path import expanduser
+
+# inputs
+time=sys.argv[1] # yyyy-mm-dd HH:MM:SS
+type_scan=sys.argv[2] # 'fore' or 'aft'
 
 # define global constants	
 pi = math.pi
 deg2rad = pi/180.0 
 rad2deg = 180.0/pi
 earth_radius=6371 # [km]
+home = expanduser("~")
+tilt_angle=19.5
+distance=45; #[km] beam length
+dem_file = home+'/Github/RadarQC/merged_dem_38-39_123-124_extended.tif'
+stdtape_filepath=home+"/Github/navigation/010123I.nc"
 
 def process_profile():
 
 	import gdal
-	from os.path import expanduser
 	import numpy as np 
 
 	# handles dem
-	home = expanduser("~")
-	dem_file = home+'/Github/RadarQC/merged_dem_38-39_123-124_extended.tif'
-	stdtape_file = 
 	layer = gdal.Open(dem_file)
 	bands = layer.RasterCount
 	gt =layer.GetGeoTransform()
 
+	# radar position and track
+	radar_position = getAircraftPosition(time)
+
 	# calculate destination point
-	radar_position=(38,1,-123,4)
-	tilt_angle=19.5
-	startP=[38.44,-123.31]
-	heading=90; #[degrees]
-	distance=30; #[km]
+	startP=radar_position[0:2]
+	track_angle=radar_position[2]
+	heading=calculateHeading(track_angle, type_scan); #[degrees]
 	finishP = destination(startP,heading,distance)
 
 	# interpolate a line with coordinates
-	number_points = 100	
+	number_points = 150	
 	line=interpolateLine(startP,finishP,number_points)
 
 	# retrieve the altitude at each line point
@@ -84,7 +92,6 @@ def interpolateLine(start_point,finish_point,number_points):
 
 def destination(start_point,heading,distance):
 
-
 	angular_dist = float(distance) / float(earth_radius) #[radians]
 	lat1=start_point[0] # [degrees]
 	lon1=start_point[1] # [degrees]
@@ -99,10 +106,61 @@ def destination(start_point,heading,distance):
 
 	return [lat2,lon2]
 
+def getAircraftPosition(time):
+
+	from netCDF4 import Dataset
+	import pandas as pd 
+
+	# open standard tape file for reading
+	stdtape_file = Dataset(stdtape_filepath,'r') 
+
+	# get stdtape timestamp
+	base_time=stdtape_file.variables['base_time'][:]
+	stdtape_secs=stdtape_file.variables['Time'][:]
+	stdtape_timestamp=pd.to_datetime(stdtape_secs+base_time,unit='s')
+	stdtape_lats=stdtape_file.variables['LAT'][:]
+	stdtape_lons=stdtape_file.variables['LON'][:]
+	stdtape_track=stdtape_file.variables['TRACK'][:]
+
+	# close the file
+	stdtape_file.close()	
+
+	# pandas dataframe for standar tape
+	d={'lats':stdtape_lats,'lons':stdtape_lons,'track': stdtape_track}
+	df_stdtape=pd.DataFrame(data=d,index=stdtape_timestamp)
+
+	latRad=df_stdtape[time]['lats'].values
+	lonRad=df_stdtape[time]['lons'].values
+	track=df_stdtape[time]['track'].values
+
+	return [latRad[0],lonRad[0],track[0]]
+
+def calculateHeading(track_angle, type_scan):
+
+	if type_scan=='fore':
+		head=track_angle-90+tilt_angle
+	elif type_scan=='aft':
+		head=track_angle-90-tilt_angle
+	else:
+		print 'Error with type scan (aft/fore'
+		exit()
+	return head
+
+
 def plot_profile(dist,val):
+
 	import matplotlib.pyplot as plt
-	line = plt.plot(dist, val, linewidth=2)
+	import matplotlib.gridspec as gridspec
+
+	gs=gridspec.GridSpec(2,1, height_ratios=[2,1])
+
+	plt.subplot(gs[0])
+
+	plt.subplot(gs[1])	
+	plt.plot(dist, val, linewidth=2)
 	plt.grid(True)
+	plt.xlabel('Distance from radar [km]')
+	plt.ylabel('Altitude [m]')
 	plt.show()
 
 def sin(value):
