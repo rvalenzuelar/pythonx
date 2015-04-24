@@ -12,11 +12,21 @@
 # For destination see:
 # http://www.movable-type.co.uk/scripts/latlong.html
 # http://williams.best.vwh.net/avform.htm#LL
-
+#
+# For plot_profile (dem subplot) see:
+# http://stackoverflow.com/questions/24956653/read-elevation-using-gdal-python-from-geotiff
 
 import math
 import sys
 from os.path import expanduser
+import gdal
+import numpy as np 
+from geographiclib.geodesic import Geodesic
+from netCDF4 import Dataset
+import pandas as pd 
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+
 
 # inputs
 time=sys.argv[1] # yyyy-mm-dd HH:MM:SS
@@ -34,13 +44,8 @@ dem_file = home+'/Github/RadarQC/merged_dem_38-39_123-124_extended.tif'
 stdtape_filepath=home+"/Github/navigation/010123I.nc"
 
 def process_profile():
-
-	import gdal
-	import numpy as np 
-
-	# handles dem
+	# handles geotiff dem (1 band only)
 	layer = gdal.Open(dem_file)
-	bands = layer.RasterCount
 	gt =layer.GetGeoTransform()
 
 	# radar position and track
@@ -59,27 +64,24 @@ def process_profile():
 	# retrieve the altitude at each line point
 	altitude=[]
 	for point in line:
-		altitude.append( getElevation(point[1],point[0],layer,bands,gt) )
+		altitude.append( getElevation(point[1],point[0],layer,gt) )
 
 	# plot profile
 	dist=np.linspace(0,distance,number_points)
-	plot_profile(dist,altitude)
+	plot_profile(dist,altitude,line,layer,gt)
 
-def getElevation(x,y,layer,bands,gt):
-	
+def getElevation(x,y,layer,gt):	
 	col=[]
 	px = int((x - gt[0]) / gt[1])
 	py =int((y - gt[3]) / gt[5])
-	for j in range(bands):
-		band = layer.GetRasterBand(j+1)
-		data = band.ReadAsArray(px,py, 1, 1)
-		col.append(data[0][0])
+	win_xsize=1
+	win_ysize=1
+	band = layer.GetRasterBand(1)
+	data = band.ReadAsArray(px,py, win_xsize, win_ysize)
+	col.append(data[0][0])
 	return col[0]
 
 def interpolateLine(start_point,finish_point,number_points):
-	
-	from geographiclib.geodesic import Geodesic
-	
 	line_points=[];
 	gd = Geodesic.WGS84.Inverse(start_point[0], start_point[1], 
 						finish_point[0], finish_point[1])
@@ -91,7 +93,6 @@ def interpolateLine(start_point,finish_point,number_points):
 	return line_points
 
 def destination(start_point,heading,distance):
-
 	angular_dist = float(distance) / float(earth_radius) #[radians]
 	lat1=start_point[0] # [degrees]
 	lon1=start_point[1] # [degrees]
@@ -107,10 +108,6 @@ def destination(start_point,heading,distance):
 	return [lat2,lon2]
 
 def getAircraftPosition(time):
-
-	from netCDF4 import Dataset
-	import pandas as pd 
-
 	# open standard tape file for reading
 	stdtape_file = Dataset(stdtape_filepath,'r') 
 
@@ -136,7 +133,6 @@ def getAircraftPosition(time):
 	return [latRad[0],lonRad[0],track[0]]
 
 def calculateHeading(track_angle, type_scan):
-
 	if type_scan=='fore':
 		head=track_angle-90+tilt_angle
 	elif type_scan=='aft':
@@ -147,15 +143,28 @@ def calculateHeading(track_angle, type_scan):
 	return head
 
 
-def plot_profile(dist,val):
+def plot_profile(dist,val, line_prof, layer, gt):
+	#prepare dtm
+	clip=[-124.17, -122.65, 38.30, 39.30]
+	xmin = int((clip[0] - gt[0]) / gt[1])
+	ymin =int((clip[3] - gt[3]) / gt[5])
+	xmax = int((clip[1] - gt[0]) / gt[1])
+	ymax =int((clip[2] - gt[3]) / gt[5])	
+	win_xsize=xmax-xmin
+	win_ysize=ymax-ymin
+	dtm = layer.GetRasterBand(1).ReadAsArray(xmin,ymin,win_xsize,win_ysize)
 
-	import matplotlib.pyplot as plt
-	import matplotlib.gridspec as gridspec
+	#grid for subplot
+	gs=gridspec.GridSpec(2,1, height_ratios=[3,1])
 
-	gs=gridspec.GridSpec(2,1, height_ratios=[2,1])
-
+	# dem
 	plt.subplot(gs[0])
+	plt.imshow(dtm, cmap='gist_earth', extent=clip)
+	pline=zip(*line_prof)
+	plt.scatter(pline[1], pline[0],c='y')
+	
 
+	# profile
 	plt.subplot(gs[1])	
 	plt.plot(dist, val, linewidth=2)
 	plt.grid(True)
