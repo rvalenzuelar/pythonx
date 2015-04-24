@@ -7,7 +7,6 @@
 # http://gis.stackexchange.com/questions/59316/
 # python-script-for-getting-elevation-difference-between-two-points
 #
-# http://www.gis.usu.edu/~chrisg/python/2009/lectures/ospy_slides5.pdf
 #
 # http://stackoverflow.com/questions/16015533/get-n-points-on-a-line
 
