@@ -15,9 +15,10 @@ def process_profile():
 	import math
 	import gdal
 	from osgeo import osr,ogr
-	from shapely.wkb import loads
+	from os.path import expanduser
+	home = expanduser("~")
 
-	demfile = '/home/raul/Github/RadarQC/merged_dem_38-39_123-124_extended.tif'
+	demfile = home+'/Github/RadarQC/merged_dem_38-39_123-124_extended.tif'
 	radar_position=(38,1,-123,4)
 	tilt_angle=19.5
 	deg2rad=math.pi/180.0
