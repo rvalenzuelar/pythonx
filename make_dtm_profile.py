@@ -155,14 +155,18 @@ def plot_profile(dist,val, line_prof, layer, gt):
 	ymax =int((clip[2] - gt[3]) / gt[5])	
 	win_xsize=xmax-xmin
 	win_ysize=ymax-ymin
-	# dtm = layer.GetRasterBand(1).ReadAsArray(xmin,ymin,win_xsize,win_ysize)
+	x_buff=200 #new resolution
+	y_buff=200 #new resolution
+	dtm = layer.GetRasterBand(1).ReadAsArray(xmin,ymin,
+											win_xsize,win_ysize,
+											x_buff,y_buff)
 
 	#grid for subplot
 	gs=gridspec.GridSpec(2,1, height_ratios=[3,1])
 
 	# dem
 	plt.subplot(gs[0])
-	# plt.imshow(dtm, cmap='gist_earth', extent=clip)
+	plt.imshow(dtm, cmap='gist_earth', extent=clip)
 	# pline=zip(*line_prof)
 	# plt.scatter(pline[1], pline[0],c='y')
 	
