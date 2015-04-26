@@ -172,12 +172,9 @@ def plot_profile(dist,val, line_prof, layer, gt):
 	ax2 = fig.add_subplot(gs[1])
 
 	# dem
-	# plt.subplot(gs[0])
-	# plt.imshow(dtm, cmap='gist_earth', extent=clip)
 	ax1.imshow(dtm, cmap='gist_earth', extent=clip)
 	# pline=zip(*line_prof)
 	# plt.scatter(pline[1], pline[0],c='y')
-
 	ax1.annotate('',xy=(-123.25,38.35), xycoords='data', 
 					xytext=(-123.29,38.43),textcoords='data',
 					arrowprops=dict(arrowstyle="->",
@@ -186,14 +183,12 @@ def plot_profile(dist,val, line_prof, layer, gt):
 				)	
 
 	# profile
-	# plt.subplot(gs[1])	
 	ax2.plot(dist, val, linewidth=2)
 	ax2.grid(True)
-	# ax2.xlabel('Distance from radar [km]')
-	# ax2.ylabel('Altitude [m]')
 	ax2.set_xlabel('Distance from radar [km]')
 	ax2.set_ylabel('Altitude [m]')
 
+	# show figure
 	plt.show()
 
 def sin(value):
