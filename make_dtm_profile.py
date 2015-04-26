@@ -26,6 +26,7 @@ from netCDF4 import Dataset
 import pandas as pd 
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+from subprocess import call
 
 
 # inputs
@@ -79,6 +80,7 @@ def getElevation(x,y,layer,gt):
 	band = layer.GetRasterBand(1)
 	data = band.ReadAsArray(px,py, win_xsize, win_ysize)
 	col.append(data[0][0])
+	col.append(0)
 	return col[0]
 
 def interpolateLine(start_point,finish_point,number_points):
@@ -108,29 +110,30 @@ def destination(start_point,heading,distance):
 	return [lat2,lon2]
 
 def getAircraftPosition(time):
-	# open standard tape file for reading
-	stdtape_file = Dataset(stdtape_filepath,'r') 
+	# # open standard tape file for reading
+	# stdtape_file = Dataset(stdtape_filepath,'r') 
 
-	# get stdtape timestamp
-	base_time=stdtape_file.variables['base_time'][:]
-	stdtape_secs=stdtape_file.variables['Time'][:]
-	stdtape_timestamp=pd.to_datetime(stdtape_secs+base_time,unit='s')
-	stdtape_lats=stdtape_file.variables['LAT'][:]
-	stdtape_lons=stdtape_file.variables['LON'][:]
-	stdtape_track=stdtape_file.variables['TRACK'][:]
+	# # get stdtape timestamp
+	# base_time=stdtape_file.variables['base_time'][:]
+	# stdtape_secs=stdtape_file.variables['Time'][:]
+	# stdtape_timestamp=pd.to_datetime(stdtape_secs+base_time,unit='s')
+	# stdtape_lats=stdtape_file.variables['LAT'][:]
+	# stdtape_lons=stdtape_file.variables['LON'][:]
+	# stdtape_track=stdtape_file.variables['TRACK'][:]
 
-	# close the file
-	stdtape_file.close()	
+	# # close the file
+	# stdtape_file.close()	
 
-	# pandas dataframe for standar tape
-	d={'lats':stdtape_lats,'lons':stdtape_lons,'track': stdtape_track}
-	df_stdtape=pd.DataFrame(data=d,index=stdtape_timestamp)
+	# # pandas dataframe for standar tape
+	# d={'lats':stdtape_lats,'lons':stdtape_lons,'track': stdtape_track}
+	# df_stdtape=pd.DataFrame(data=d,index=stdtape_timestamp)
 
-	latRad=df_stdtape[time]['lats'].values
-	lonRad=df_stdtape[time]['lons'].values
-	track=df_stdtape[time]['track'].values
+	# latRad=df_stdtape[time]['lats'].values
+	# lonRad=df_stdtape[time]['lons'].values
+	# track=df_stdtape[time]['track'].values
 
-	return [latRad[0],lonRad[0],track[0]]
+	# return [latRad[0],lonRad[0],track[0]]
+	return [38.43,-123.29,139]
 
 def calculateHeading(track_angle, type_scan):
 	if type_scan=='fore':
@@ -152,16 +155,16 @@ def plot_profile(dist,val, line_prof, layer, gt):
 	ymax =int((clip[2] - gt[3]) / gt[5])	
 	win_xsize=xmax-xmin
 	win_ysize=ymax-ymin
-	dtm = layer.GetRasterBand(1).ReadAsArray(xmin,ymin,win_xsize,win_ysize)
+	# dtm = layer.GetRasterBand(1).ReadAsArray(xmin,ymin,win_xsize,win_ysize)
 
 	#grid for subplot
 	gs=gridspec.GridSpec(2,1, height_ratios=[3,1])
 
 	# dem
 	plt.subplot(gs[0])
-	plt.imshow(dtm, cmap='gist_earth', extent=clip)
-	pline=zip(*line_prof)
-	plt.scatter(pline[1], pline[0],c='y')
+	# plt.imshow(dtm, cmap='gist_earth', extent=clip)
+	# pline=zip(*line_prof)
+	# plt.scatter(pline[1], pline[0],c='y')
 	
 
 	# profile
