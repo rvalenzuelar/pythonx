@@ -177,7 +177,13 @@ def plot_profile(dist,val, line_prof, layer, gt):
 	ax1.imshow(dtm, cmap='gist_earth', extent=clip)
 	# pline=zip(*line_prof)
 	# plt.scatter(pline[1], pline[0],c='y')
-	
+
+	ax1.annotate('',xy=(-123.25,38.35), xycoords='data', 
+					xytext=(-123.29,38.43),textcoords='data',
+					arrowprops=dict(arrowstyle="->",
+									linewidth = 1.0,
+									color = 'white')
+				)	
 
 	# profile
 	# plt.subplot(gs[1])	
