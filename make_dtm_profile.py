@@ -56,21 +56,25 @@ def process_profile():
 	startP=radar_position[0:2]
 	track_angle=radar_position[2]
 	heading=calculateHeading(track_angle, type_scan); #[degrees]
-	finishP = destination(startP,heading,distance)
+	finishP_left = destination(startP,heading[0],distance)
+	finishP_right = destination(startP,heading[1],distance)
 
-	# interpolate a line with coordinates
+	# interpolate left and right line with coordinates
 	number_points = 150	
-	line=interpolateLine(startP,finishP,number_points)
+	line_left=interpolateLine(startP,finishP_left,number_points)
+	line_right=interpolateLine(startP,finishP_right,number_points)
 
-	# retrieve the altitude at each line point
-	altitude=[]
-	for point in line:
-		altitude.append( getElevation(point[1],point[0],layer,gt) )
-
+	# retrieve altitude at each line point (left and right)
+	altitude_left=getAltitudeProfile(line_left,layer,gt)
+	altitude_right=getAltitudeProfile(line_right,layer,gt)
+	
 	# plot profile
-	dist=np.linspace(0,distance,number_points)
-	line_p=[[startP[1],finishP[1]],[startP[0],finishP[0]]]
-	plot_profile(dist,altitude,line_p,layer,gt,radar_position)
+	dist=np.linspace(-distance,distance,number_points*2)
+	# line_p=[[startP[1],finishP[1]],[startP[0],finishP[0]]]
+	# plot_profile(dist,altitude,line_p,layer,gt,radar_position)
+	altitude=[altitude_left,altitude_right]
+	finishP=[finishP_left,finishP_right]
+	plot_profile(dist,altitude,finishP,layer,gt,radar_position)
 
 def getElevation(x,y,layer,gt):	
 	col=[]
@@ -84,15 +88,22 @@ def getElevation(x,y,layer,gt):
 	col.append(0)
 	return col[0]
 
-def interpolateLine(start_point,finish_point,number_points):
-	line_points=[];
-	gd = Geodesic.WGS84.Inverse(start_point[0], start_point[1], 
-						finish_point[0], finish_point[1])
-	line = Geodesic.WGS84.Line(gd['lat1'], gd['lon1'], gd['azi1'])
+def getAltitudeProfile(line,layer,gt):
+	altitude=[]
+	for point in line:
+		altitude.append( getElevation(point[1],point[0],layer,gt) )
 
+	return altitude
+
+def interpolateLine(start_point,finish_point,number_points):
+	gd = Geodesic.WGS84.Inverse(start_point[0], start_point[1], 
+					finish_point[0], finish_point[1])
+	line = Geodesic.WGS84.Line(gd['lat1'], gd['lon1'], gd['azi1'])
+	line_points=[];
 	for i in range(number_points):
 		point = line.Position(gd['s12'] / number_points * i)
 		line_points.append((point['lat2'], point['lon2']))
+
 	return line_points
 
 def destination(start_point,heading,distance):
@@ -108,7 +119,7 @@ def destination(start_point,heading,distance):
 	D = cos(angular_dist)-sind(lat1)*sind(lat2)
 	lon2=( lon1*deg2rad+atan2( C,D ) ) * rad2deg
 
-	return [lat2,lon2]
+	return (lat2,lon2)
 
 def getAircraftPosition():
 	# open standard tape file for reading
@@ -145,18 +156,23 @@ def getAircraftArrow(radar_position):
 
 def calculateHeading(track_angle, type_scan):
 	if type_scan=='fore':
-		head=track_angle-90+tilt_angle
+		head_left=track_angle-90+tilt_angle
+		head_right=track_angle+90-tilt_angle
 	elif type_scan=='aft':
-		head=track_angle-90-tilt_angle
+		head_left=track_angle-90-tilt_angle
+		head_right=track_angle+90+tilt_angle
 	else:
 		print 'Error with type scan (aft/fore)'
 		exit()
-	return head
+	return [head_left,head_right]
 
 
-def plot_profile(dist,val, line_prof, layer, gt,radar_position):
+def plot_profile(dist,alt, line_prof, layer, gt,radar_position):
+
+	plt.ion()
+
 	#prepare dtm
-	clip=[-124.17, -122.65, 38.30, 39.30]
+	clip=[-124.17, -122.65, 38.15, 39.30]
 	xmin = int((clip[0] - gt[0]) / gt[1])
 	ymin =int((clip[3] - gt[3]) / gt[5])
 	xmax = int((clip[1] - gt[0]) / gt[1])
@@ -180,8 +196,19 @@ def plot_profile(dist,val, line_prof, layer, gt,radar_position):
 	ax2 = fig.add_subplot(gs[1])
 
 	# dem
-	ax1.imshow(dtm, cmap='gist_earth', extent=clip)
-	ax1.plot(line_prof[0], line_prof[1],linewidth=2,c='r')	
+	im=ax1.imshow(dtm, cmap='gist_earth', extent=clip)
+	# fig.colorbar().colorbar(ax=ax1)
+	cbar=plt.colorbar(im,ax=ax1)
+
+	# left line
+	X=[radar_position[1],line_prof[0][1]]
+	Y=[radar_position[0],line_prof[0][0]]
+	ax1.plot(X,Y,linewidth=2,c='r')
+	# right line
+	X=[radar_position[1],line_prof[1][1]]
+	Y=[radar_position[0],line_prof[1][0]]
+	ax1.plot(X, Y,linewidth=2,c='r')
+	# arrow
 	acft=getAircraftArrow(radar_position)	
 	ax1.annotate('',xy=(acft[3],acft[2]), xycoords='data', 
 			xytext=(acft[1],acft[0]),textcoords='data',
@@ -192,14 +219,35 @@ def plot_profile(dist,val, line_prof, layer, gt,radar_position):
 	ax1.set_title(time)
 
 	# profile
-	ax2.plot(dist, val, linewidth=2, c='r')
+	part1=alt[0]
+	part2=alt[1]
+	if radar_position[2]>270:
+		# dist=np.flipud(dist)
+		alt=np.asarray(part1[::-1]+part2) # reverse and merge list
+		# alt=part1[::-1]+part2 # reverse and merge list
+	else:
+		alt=np.flipud(np.asarray(part2+part1)) # reverse and merge list
+
+	# print dist.shape
+	# print alt.shape
+	# exit()
+
+	# ax2.plot(dist, alt[1]+alt[0], linewidth=2, c='r')
+	ax2.plot(dist, alt, linewidth=2, c='r')
 	ax2.invert_xaxis()
 	ax2.grid(True)
 	ax2.set_xlabel('Distance from radar [km]')
 	ax2.set_ylabel('Altitude [m]')
+	ax2.set_xlim([-45,45])
+	ax2.set_ylim([0,1000])
 
 	# show figure
+	gs.tight_layout(fig)
+
+	
+	# plt.draw()
 	plt.show()
+
 
 def sin(value):
 	return math.sin(value)
