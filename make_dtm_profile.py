@@ -26,6 +26,7 @@ from netCDF4 import Dataset
 import pandas as pd 
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+from subprocess import call
 
 
 # inputs
@@ -80,6 +81,7 @@ def getElevation(x,y,layer,gt):
 	band = layer.GetRasterBand(1)
 	data = band.ReadAsArray(px,py, win_xsize, win_ysize)
 	col.append(data[0][0])
+	col.append(0)
 	return col[0]
 
 def interpolateLine(start_point,finish_point,number_points):
@@ -132,11 +134,12 @@ def getAircraftPosition():
 	track=df_stdtape[time]['track'].values
 
 	return [latRad[0],lonRad[0],track[0]]
+	
 
 def getAircraftArrow(radar_position):
 	start_point = radar_position[0:2]
 	heading = radar_position[2]
-	distance = 0.1 # [km]
+	distance = 10.0 # [km]
 	end_point = destination(start_point,heading,distance)
 	return [ start_point[0] , start_point [1], end_point[0] , end_point[1] ]
 
@@ -160,36 +163,42 @@ def plot_profile(dist,val, line_prof, layer, gt,radar_position):
 	ymax =int((clip[2] - gt[3]) / gt[5])	
 	win_xsize=xmax-xmin
 	win_ysize=ymax-ymin
-	dtm = layer.GetRasterBand(1).ReadAsArray(xmin,ymin,win_xsize,win_ysize)
+	x_buff=150 #new resolution
+	y_buff=150 #new resolution
+	dtm = layer.GetRasterBand(1).ReadAsArray(xmin,ymin,
+							win_xsize,win_ysize,
+							x_buff,y_buff)
+
+	# add figure
+	fig = plt.figure()
 
 	#grid for subplot
 	gs=gridspec.GridSpec(2,1, height_ratios=[3,1])
 
-	# dem with profile line
-	ax=plt.subplot(gs[0])
-	plt.imshow(dtm, cmap='gist_earth', extent=clip)
-	plt.plot(line_prof[0], line_prof[1],linewidth=2,c='r')	
-	acft=getAircraftArrow(radar_position)
-	# plt.arrow(acft[0],acft[1],acft[2],acft[3],head_width=100,head_length=100,color=[0,1,0])
-	# plt.annotate('' , (acft[0],acft[1]) , (acft[2],acft[3]) ,xycoords='data', arrowprops={'arrowstyle':'->'} )
-	# ax.annotate('', 
-	# xy=(acft[1],acft[0]), xycoords='data',
- #    	xytext=(acft[3],acft[2]), textcoords='data',
- #    	size=20,arrowprops=dict(arrowstyle="simple"))
-	# ax.annotate('asdas', 
-	# xy=(1,10), xycoords='data',
- #    	xytext=(0.5,8), textcoords='offset points',
- #    	size=20,arrowprops=dict(arrowstyle="simple"),annotation_clip=False)
-	plt.axis((clip))
-	plt.title(time)
+	# create axes
+	ax1 = fig.add_subplot(gs[0])
+	ax2 = fig.add_subplot(gs[1])
+
+	# dem
+	ax1.imshow(dtm, cmap='gist_earth', extent=clip)
+	ax1.plot(line_prof[0], line_prof[1],linewidth=2,c='r')	
+	acft=getAircraftArrow(radar_position)	
+	ax1.annotate('',xy=(acft[3],acft[2]), xycoords='data', 
+			xytext=(acft[1],acft[0]),textcoords='data',
+			arrowprops=dict(arrowstyle="->",
+					linewidth = 2.0,
+					color = 'white') )
+	ax1.axis((clip))
+	ax1.set_title(time)
 
 	# profile
-	plt.subplot(gs[1])	
-	plt.plot(dist, val, linewidth=2,c='r')
-	plt.gca().invert_xaxis()
-	plt.grid(True)
-	plt.xlabel('Distance from radar [km]')
-	plt.ylabel('Altitude [m]')
+	ax2.plot(dist, val, linewidth=2, c='r')
+	ax2.invert_xaxis()
+	ax2.grid(True)
+	ax2.set_xlabel('Distance from radar [km]')
+	ax2.set_ylabel('Altitude [m]')
+
+	# show figure
 	plt.show()
 
 def sin(value):
