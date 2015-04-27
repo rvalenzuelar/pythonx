@@ -49,7 +49,7 @@ def process_profile():
 	gt =layer.GetGeoTransform()
 
 	# radar position and track
-	radar_position = getAircraftPosition(time)
+	radar_position = getAircraftPosition()
 
 	# calculate destination point
 	startP=radar_position[0:2]
@@ -68,7 +68,8 @@ def process_profile():
 
 	# plot profile
 	dist=np.linspace(0,distance,number_points)
-	plot_profile(dist,altitude,line,layer,gt)
+	line_p=[[startP[1],finishP[1]],[startP[0],finishP[0]]]
+	plot_profile(dist,altitude,line_p,layer,gt,radar_position)
 
 def getElevation(x,y,layer,gt):	
 	col=[]
@@ -107,7 +108,7 @@ def destination(start_point,heading,distance):
 
 	return [lat2,lon2]
 
-def getAircraftPosition(time):
+def getAircraftPosition():
 	# open standard tape file for reading
 	stdtape_file = Dataset(stdtape_filepath,'r') 
 
@@ -132,18 +133,25 @@ def getAircraftPosition(time):
 
 	return [latRad[0],lonRad[0],track[0]]
 
+def getAircraftArrow(radar_position):
+	start_point = radar_position[0:2]
+	heading = radar_position[2]
+	distance = 0.1 # [km]
+	end_point = destination(start_point,heading,distance)
+	return [ start_point[0] , start_point [1], end_point[0] , end_point[1] ]
+
 def calculateHeading(track_angle, type_scan):
 	if type_scan=='fore':
 		head=track_angle-90+tilt_angle
 	elif type_scan=='aft':
 		head=track_angle-90-tilt_angle
 	else:
-		print 'Error with type scan (aft/fore'
+		print 'Error with type scan (aft/fore)'
 		exit()
 	return head
 
 
-def plot_profile(dist,val, line_prof, layer, gt):
+def plot_profile(dist,val, line_prof, layer, gt,radar_position):
 	#prepare dtm
 	clip=[-124.17, -122.65, 38.30, 39.30]
 	xmin = int((clip[0] - gt[0]) / gt[1])
@@ -157,16 +165,28 @@ def plot_profile(dist,val, line_prof, layer, gt):
 	#grid for subplot
 	gs=gridspec.GridSpec(2,1, height_ratios=[3,1])
 
-	# dem
-	plt.subplot(gs[0])
+	# dem with profile line
+	ax=plt.subplot(gs[0])
 	plt.imshow(dtm, cmap='gist_earth', extent=clip)
-	pline=zip(*line_prof)
-	plt.scatter(pline[1], pline[0],c='y')
-	
+	plt.plot(line_prof[0], line_prof[1],linewidth=2,c='r')	
+	acft=getAircraftArrow(radar_position)
+	# plt.arrow(acft[0],acft[1],acft[2],acft[3],head_width=100,head_length=100,color=[0,1,0])
+	# plt.annotate('' , (acft[0],acft[1]) , (acft[2],acft[3]) ,xycoords='data', arrowprops={'arrowstyle':'->'} )
+	# ax.annotate('', 
+	# xy=(acft[1],acft[0]), xycoords='data',
+ #    	xytext=(acft[3],acft[2]), textcoords='data',
+ #    	size=20,arrowprops=dict(arrowstyle="simple"))
+	# ax.annotate('asdas', 
+	# xy=(1,10), xycoords='data',
+ #    	xytext=(0.5,8), textcoords='offset points',
+ #    	size=20,arrowprops=dict(arrowstyle="simple"),annotation_clip=False)
+	plt.axis((clip))
+	plt.title(time)
 
 	# profile
 	plt.subplot(gs[1])	
-	plt.plot(dist, val, linewidth=2)
+	plt.plot(dist, val, linewidth=2,c='r')
+	plt.gca().invert_xaxis()
 	plt.grid(True)
 	plt.xlabel('Distance from radar [km]')
 	plt.ylabel('Altitude [m]')
