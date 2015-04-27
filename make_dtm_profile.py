@@ -168,7 +168,7 @@ def calculateHeading(track_angle, type_scan):
 
 
 def plot_profile(dist,alt, line_prof, layer, gt,radar_position):
-
+	# interactive mode
 	plt.ion()
 
 	#prepare dtm
@@ -222,15 +222,9 @@ def plot_profile(dist,alt, line_prof, layer, gt,radar_position):
 	part1=alt[0]
 	part2=alt[1]
 	if radar_position[2]>270:
-		# dist=np.flipud(dist)
 		alt=np.asarray(part1[::-1]+part2) # reverse and merge list
-		# alt=part1[::-1]+part2 # reverse and merge list
 	else:
 		alt=np.flipud(np.asarray(part2+part1)) # reverse and merge list
-
-	# print dist.shape
-	# print alt.shape
-	# exit()
 
 	# ax2.plot(dist, alt[1]+alt[0], linewidth=2, c='r')
 	ax2.plot(dist, alt, linewidth=2, c='r')
@@ -244,7 +238,6 @@ def plot_profile(dist,alt, line_prof, layer, gt,radar_position):
 	# show figure
 	gs.tight_layout(fig)
 
-	
 	# plt.draw()
 	plt.show()
 
