@@ -15,6 +15,12 @@
 #
 # For plot_profile (dem subplot) see:
 # http://stackoverflow.com/questions/24956653/read-elevation-using-gdal-python-from-geotiff
+#
+#
+# Usage example:
+#
+#	$ python make_dtm_profile.py '2001-01-23 21:46:12' 'aft'
+#	$ python make_dtm_profile.py '2001-01-23 21:46:12' 'fore'
 
 import math
 import sys
