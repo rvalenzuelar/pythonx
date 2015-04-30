@@ -1,4 +1,5 @@
-#
+#!/home/rvalenzuela/miniconda/bin/python
+
 # Raul Valenzuela
 # April, 2015
 #
@@ -16,28 +17,20 @@
 # For plot_profile (dem subplot) see:
 # http://stackoverflow.com/questions/24956653/read-elevation-using-gdal-python-from-geotiff
 #
-#
-# Usage example:
-#
-#	$ python make_dtm_profile.py '2001-01-23 21:46:12' 'aft'
-#	$ python make_dtm_profile.py '2001-01-23 21:46:12' 'fore'
 
 import math
 import sys
-from os.path import expanduser
+import getopt 
 import gdal
 import numpy as np 
-from geographiclib.geodesic import Geodesic
-from netCDF4 import Dataset
 import pandas as pd 
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from subprocess import call
+from os.path import expanduser
+from geographiclib.geodesic import Geodesic
+from netCDF4 import Dataset
 
-
-# inputs
-time=sys.argv[1] # yyyy-mm-dd HH:MM:SS
-type_scan=sys.argv[2] # 'fore' or 'aft'
 
 # define global constants	
 pi = math.pi
@@ -50,7 +43,43 @@ distance=45; #[km] beam length
 dem_file = home+'/Github/RadarQC/merged_dem_38-39_123-124_extended.tif'
 stdtape_filepath=home+"/Github/navigation/010123I.nc"
 
-def process_profile():
+def usage():
+	print "\nUsage examples:"
+	print "$ ./make_dtm_profile.py -t '2001-01-23 21:46:12' -s 'aft'"
+	print "$ ./make_dtm_profile.py -t '2001-01-23 21:46:12' -s 'fore'\n"
+
+def getInputs(argv):
+	global time 
+	global type_scan
+
+	op0="h" # print usage
+	op1="t:" # time
+	op2="s:" # type_scan
+	myops=op0+op1+op2
+
+	try:
+		opts, args = getopt.getopt(argv,myops)
+	except getopt.GetoptError:
+		usage()
+		exit()
+
+	if opts != []:
+		for opt, arg in opts:
+			if opt == '-h':
+					usage()
+					exit()
+			elif opt in ("-t"):
+				time = arg
+				# print time
+				# exit()
+			elif opt in ("-s"):
+				type_scan = arg
+	else:
+		usage()
+		exit()
+
+def main():
+
 	# handles geotiff dem (1 band only)
 	layer = gdal.Open(dem_file)
 	gt =layer.GetGeoTransform()
@@ -241,12 +270,8 @@ def plot_profile(dist,alt, line_prof, layer, gt,radar_position):
 	ax2.set_xlim([-45,45])
 	ax2.set_ylim([0,1000])
 
-	# show figure
-	gs.tight_layout(fig)
-
-	# plt.draw()
-	plt.show()
-
+	plt.savefig('new_file.png', dpi=150)
+	call(["eog", "new_file.png"])
 
 def sin(value):
 	return math.sin(value)
@@ -268,4 +293,6 @@ def atan2(value1,value2):
 
 
 # call main function
-process_profile()
+if __name__ == "__main__":
+	getInputs(sys.argv[1:])
+	main()
