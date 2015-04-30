@@ -270,8 +270,9 @@ def plot_profile(dist,alt, line_prof, layer, gt,radar_position):
 	ax2.set_xlim([-45,45])
 	ax2.set_ylim([0,1000])
 
-	plt.savefig('new_file.png', dpi=150)
-	call(["eog", "new_file.png"])
+	outfile="profile_"+time.replace(" ","_")+"_"+type_scan+".png"
+	plt.savefig(outfile, dpi=150)
+	call(["eog", outfile])
 
 def sin(value):
 	return math.sin(value)
