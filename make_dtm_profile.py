@@ -28,6 +28,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from subprocess import call
 from os.path import expanduser
+from os.path import isfile
 from geographiclib.geodesic import Geodesic
 from netCDF4 import Dataset
 
@@ -41,7 +42,7 @@ home = expanduser("~")
 tilt_angle=19.5
 distance=45; #[km] beam length
 dem_file = home+'/Github/RadarQC/merged_dem_38-39_123-124_extended.tif'
-stdtape_filepath=home+"/Github/navigation/010123I.nc"
+stdtape_filepath=home+"/Github/correct_coords/010123I.nc"
 
 def usage():
 	print "\nUsage examples:"
@@ -76,6 +77,12 @@ def getInputs(argv):
 				type_scan = arg
 	else:
 		usage()
+		exit()
+
+	# if output file already exists deploy it and exist
+	outfile="profile_"+time.replace(" ","_")+"_"+type_scan+".png"
+	if isfile("./"+outfile):
+		call(["eog", outfile])		
 		exit()
 
 def main():
@@ -207,7 +214,7 @@ def plot_profile(dist,alt, line_prof, layer, gt,radar_position):
 	plt.ion()
 
 	#prepare dtm
-	clip=[-124.17, -122.65, 38.15, 39.30]
+	clip=[-124.17, -122.65, 37.80, 39.30]
 	xmin = int((clip[0] - gt[0]) / gt[1])
 	ymin =int((clip[3] - gt[3]) / gt[5])
 	xmax = int((clip[1] - gt[0]) / gt[1])
@@ -295,5 +302,10 @@ def atan2(value1,value2):
 
 # call main function
 if __name__ == "__main__":
-	getInputs(sys.argv[1:])
-	main()
+	inargs = sys.argv[1:]	
+	if not inargs:
+		usage()
+		exit()
+	else:
+		getInputs(inargs)
+		main()
