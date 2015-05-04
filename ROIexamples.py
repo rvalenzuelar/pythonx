@@ -5,11 +5,6 @@ region of interest marker. It is possible to customize the layout and
 function of the scale/rotate handles in very flexible ways. 
 """
 
-#  from:
-#  https://github.com/campagnola/pyqtgraph/blob/master/examples/
-
-# import initExample ## Add path to library (just for examples; you do not need this)
-
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui
 import numpy as np
@@ -30,7 +25,7 @@ arr += np.random.normal(size=(100,100))
 
 ## create GUI
 app = QtGui.QApplication([])
-w = pg.GraphicsWindow(size=(800,800), border=True)
+w = pg.GraphicsWindow(size=(1000,800), border=True)
 w.setWindowTitle('pyqtgraph example: ROI Examples')
 
 text = """Data Selection From Image.<br>\n
@@ -135,7 +130,7 @@ label4 = w4.addLabel(text, row=0, col=0)
 v4 = w4.addViewBox(row=1, col=0, lockAspect=True)
 g = pg.GridItem()
 v4.addItem(g)
-r4 = pg.ROI([0,0], [100,100])
+r4 = pg.ROI([0,0], [100,100], removable=True)
 r4.addRotateHandle([1,0], [0.5, 0.5])
 r4.addRotateHandle([0,1], [0.5, 0.5])
 img4 = pg.ImageItem(arr)
@@ -144,6 +139,18 @@ img4.setParentItem(r4)
 
 v4.disableAutoRange('xy')
 v4.autoRange()
+
+# Provide a callback to remove the ROI (and its children) when
+# "remove" is selected from the context menu.
+def remove():
+    v4.removeItem(r4)
+r4.sigRemoveRequested.connect(remove)
+
+
+
+
+
+
 
 
 ## Start Qt event loop unless running in interactive mode or using pyside.
