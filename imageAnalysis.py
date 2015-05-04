@@ -1,12 +1,8 @@
-# -*- coding: utf-8 -*-
-"""
-Demonstrates common image analysis tools.
+""" Creates a digital terrain model profile
 
-Many of the features demonstrated here are already provided by the ImageView
-widget, but here we present a lower-level approach that provides finer control
-over the user interface.
+	Raul Valenzuela
+	May, 2015							
 """
-# import initExample ## Add path to library (just for examples; you do not need this)
 
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui
@@ -19,9 +15,7 @@ import matplotlib.cm as cm # colormap
 def updatePlot():
     global img, roi, data, p2
     selected = roi.getArrayRegion(data, img)
-    # p2.plot(selected.mean(axis=1), clear=True)
     p2.plot(selected, clear=True)
-#
 
 def makeLut(ncolors):
 	lut_temp=cm.gist_earth(np.arange(ncolors))*256
@@ -35,53 +29,39 @@ def makeColorbarGradient(levels,lut):
 	for stop in stops:
 		indx=int(stop*255)
 		grad.setColorAt(stop,QtGui.QColor(lut[indx,0],lut[indx,1],lut[indx,2]))
-
 	return grad
 
 
 
 # create app
 pg.mkQApp()
+# pg.setConfigOption('background', 'w')
 
 # create window
 win = pg.GraphicsLayoutWidget()
 win.setWindowTitle('pyqtgraph example: Image Analysis')
 
-# A plot area (ViewBox + axes) for displaying the image
-p1 = win.addPlot()
-
-# Item for displaying image data
-img = pg.ImageItem()
-p1.addItem(img)
+# Add a ViewBox for displaying the image
+p1 = win.addViewBox()
+p1.setBackgroundColor('w')
+# print p1.viewRect()
 
 
 # Custom ROI for selecting an image region
-# roi = pg.ROI([10, 30], [30, 30])
-# roi.addScaleHandle([0.5, 1], [0.5, 0.5])
-# roi.addScaleHandle([0, 0.5], [0.5, 0.5])
-# roi=pg.PolyLineROI([[20,40],[80,80], [100,100]], closed=False)
-# roicoor=[[10, 64], [120,64]]
 roi=pg.LineSegmentROI([[10,10],[30,30]])
 p1.addItem(roi)
-roi.setZValue(100)  # make sure ROI is drawn above image
-# roi.movable=False
 
-# # Contrast/color control
-grad = pg.GradientEditorItem(orientation='right')
-# grad.loadPreset('greyyncolors')
-# grad.setColorMap(lut)
-# win.addItem(grad,0,1)
-# print grad.colorMap()
-# win.addItem(cb,0,1)
-
-
-# Another plot area for displaying ROI data
+# Add plot area (ViewBox + axes) for displaying the profile
 win.nextRow()
 p2 = win.addPlot(colspan=2)
 p2.setMaximumHeight(250)
 win.resize(600, 700)
+
+# show window with widgets
 win.show()
 
+# make lookup table (colormap)
+lut=makeLut(256)
 
 # handles geotiff dem (1 band only)
 home = expanduser("~")
@@ -97,14 +77,17 @@ xmax = int((clip[1] - gt[0]) / gt[1])
 ymax =int((clip[2] - gt[3]) / gt[5])	
 win_xsize=xmax-xmin
 win_ysize=ymax-ymin
-x_buff=200 #new resolution
-y_buff=200 #new resolution
+x_buff=250 #new resolution
+y_buff=250 #new resolution
 data = np.rot90(layer.GetRasterBand(1).ReadAsArray(xmin,ymin,
 						win_xsize,win_ysize,
 						x_buff,y_buff),3)
-lut=makeLut(256)
+# Item for displaying image data
+img = pg.ImageItem()
 img.setImage(data,lut=lut,levels=(0,1000))
-
+p1.addItem(img)
+print p1.itemBoundingRect(img)
+# p1.setSceneRect(-180, -90, 360, 180)
 
 # colorbar
 cb=pg.GradientLegend((10,200), (30,30))
@@ -121,8 +104,7 @@ cb.scale(1,-1)
 # img.scale(0.2, 0.2)
 # img.translate(-50, 0)
 
-# zoom to fit imageo
-p1.autoRange()  
+
 
 
 roi.sigRegionChanged.connect(updatePlot)
