@@ -3,7 +3,7 @@
 # Raul Valenzuela
 # April, 2015
 #
-# For process_profile and getElevation see:
+# For process_profile and getDtmElevation see:
 # http://gis.stackexchange.com/questions/59316/
 # python-script-for-getting-elevation-difference-between-two-points
 #
@@ -118,7 +118,7 @@ def main():
 	finishP=[finishP_left,finishP_right]
 	plot_profile(dist,altitude,finishP,layer,gt,radar_position)
 
-def getElevation(x,y,layer,gt):	
+def getDtmElevation(x,y,layer,gt):	
 	col=[]
 	px = int((x - gt[0]) / gt[1])
 	py =int((y - gt[3]) / gt[5])
@@ -133,7 +133,7 @@ def getElevation(x,y,layer,gt):
 def getAltitudeProfile(line,layer,gt):
 	altitude=[]
 	for point in line:
-		altitude.append( getElevation(point[1],point[0],layer,gt) )
+		altitude.append( getDtmElevation(point[1],point[0],layer,gt) )
 
 	return altitude
 
@@ -174,19 +174,25 @@ def getAircraftPosition():
 	stdtape_lats=stdtape_file.variables['LAT'][:]
 	stdtape_lons=stdtape_file.variables['LON'][:]
 	stdtape_track=stdtape_file.variables['TRACK'][:]
+	stdtape_galt=stdtape_file.variables['GEOPOT_ALT'][:]
+	stdtape_palt=stdtape_file.variables['PRES_ALT'][:]
+	
 
 	# close the file
 	stdtape_file.close()	
 
 	# pandas dataframe for standar tape
-	d={'lats':stdtape_lats,'lons':stdtape_lons,'track': stdtape_track}
+	d={'lats':stdtape_lats,'lons':stdtape_lons,'track': stdtape_track,
+		'galt':stdtape_galt, 'palt':stdtape_palt}
 	df_stdtape=pd.DataFrame(data=d,index=stdtape_timestamp)
 
 	latRad=df_stdtape[time]['lats'].values
 	lonRad=df_stdtape[time]['lons'].values
 	track=df_stdtape[time]['track'].values
-
-	return [latRad[0],lonRad[0],track[0]]
+	galtRad=df_stdtape[time]['galt'].values
+	paltRad=df_stdtape[time]['palt'].values
+	
+	return [latRad[0],lonRad[0],track[0],galtRad[0],paltRad[0]]
 	
 
 def getAircraftArrow(radar_position):
@@ -268,14 +274,17 @@ def plot_profile(dist,alt, line_prof, layer, gt,radar_position):
 	else:
 		alt=np.flipud(np.asarray(part2+part1)) # reverse and merge list
 
+	pAlt=radar_position[3]
+	gAlt=radar_position[4]
 	# ax2.plot(dist, alt[1]+alt[0], linewidth=2, c='r')
 	ax2.plot(dist, alt, linewidth=2, c='r')
+	ax2.plot(0,pAlt,'ro')
 	ax2.invert_xaxis()
 	ax2.grid(True)
 	ax2.set_xlabel('Distance from radar [km]')
 	ax2.set_ylabel('Altitude [m]')
 	ax2.set_xlim([-45,45])
-	ax2.set_ylim([0,1000])
+	ax2.set_ylim([0,pAlt+200])
 
 	outfile="profile_"+time.replace(" ","_")+"_"+type_scan+".png"
 	plt.savefig(outfile, dpi=150)
