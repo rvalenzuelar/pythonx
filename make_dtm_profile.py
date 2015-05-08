@@ -284,7 +284,12 @@ def plot_profile(dist,alt, line_prof, layer, gt,radar_position):
 	ax2.set_xlabel('Distance from radar [km]')
 	ax2.set_ylabel('Altitude [m]')
 	ax2.set_xlim([-45,45])
+	ax2.set_xticks(np.linspace(-45,45,95/5))
 	ax2.set_ylim([0,pAlt+200])
+
+	ax2.text(-40,1000,'Lat = ')
+	ax2.text(-40,800,'Lon = ')
+	ax2.text(-40,600,'pAlt = ')
 
 	outfile="profile_"+time.replace(" ","_")+"_"+type_scan+".png"
 	plt.savefig(outfile, dpi=150)
