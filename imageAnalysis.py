@@ -1,3 +1,5 @@
+#!/home/raul/miniconda/bin/python
+
 """ Creates a digital terrain model profile
 
 	Raul Valenzuela
@@ -22,7 +24,6 @@ def makeLut(ncolors):
 	return lut_temp[::,0:3].astype(int)
 
 def makeColorbarGradient(levels,lut):
-
 	nlevels = len(levels)
 	stops = np.linspace(0,1,nlevels)
 	grad = QtGui.QLinearGradient()
@@ -86,7 +87,7 @@ data = np.rot90(layer.GetRasterBand(1).ReadAsArray(xmin,ymin,
 img = pg.ImageItem()
 img.setImage(data,lut=lut,levels=(0,1000))
 p1.addItem(img)
-print p1.itemBoundingRect(img)
+# print p1.itemBoundingRect(img)
 # p1.setSceneRect(-180, -90, 360, 180)
 
 # colorbar
