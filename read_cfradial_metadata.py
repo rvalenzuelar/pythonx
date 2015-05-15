@@ -7,21 +7,44 @@
 # May, 2015
 
 from netCDF4 import Dataset
-# import glob
-import numpy as np 
 import pandas as pd 
 from os import listdir
 from os.path import isfile, join
 
 def main():
 	
-	mypath="/home/rvalenzuela/P3_v2/cfrad/c03/leg03_cor"
+	# input folder
+	cfrad_set="leg03_cor"
+	mypath="/home/rvalenzuela/P3_v2/cfrad/c03/"+cfrad_set
+
+	# list of files
 	cfrad_list = [ f for f in listdir(mypath) if isfile(join(mypath,f)) ]
 	
 	# get a list cfradial files
 	nlist=len(cfrad_list)
 
-	for f in range(5):
+	# creates dataframe with name of columns
+	cols=(	'lats',
+		'lons',
+		'alt_msl',
+		'alt_agl',
+		'ew_vel',
+		'nw_vel',
+		'vert_vel',
+		'head',
+		'roll',
+		'pitch',
+		'drift',
+		'rot',
+		'tilt',
+		'uwin',
+		'vwin',
+		'wwin')
+	df = pd.DataFrame(columns=cols)
+
+	print ' Reading metadata in'
+	print ' '+mypath
+	for f in range(nlist):
 		# open cfradial file for reading and writing
 		cfrad_file = Dataset(mypath+"/"+cfrad_list[f],'r') 
 
@@ -34,9 +57,8 @@ def main():
 		# metadata values will be averaged and start time 
 		# will be the timestamp
 		cfrad_start_datetime=pd.to_datetime(start_datetime_str,format=time_format)
-		print cfrad_start_datetime
 
-		 # uncomment if timestamp is need
+		# uncomment if timestamp for individual beams is needed
 		#---------------------------------------------------------------------------------------
 		# cfrad_time = cfrad_file.variables['time'][:]
 		# cfrad_secs=pd.to_timedelta(cfrad_time.astype(int),unit='s')
@@ -61,27 +83,39 @@ def main():
 		v_wind		= average(cfrad_file.variables['northward_wind'][:])
 		w_wind	= average(cfrad_file.variables['vertical_wind'][:])
 
-		print heading, roll, pitch, u_wind, v_wind, w_wind
+		# pandas dataframe for cfradial file
+		d={	'lats': latitude,
+			'lons': longitude,
+			'alt_msl': altitude_msl,
+			'alt_agl': altitude_agl,
+			'ew_vel': ew_velocity,
+			'nw_vel': nw_velocity,
+			'vert_vel': vert_velocity,
+			'head': heading,
+			'roll': roll,
+			'pitch': pitch,
+			'drift': drift,
+			'rot': rotation,
+			'tilt': tilt,
+			'uwin': u_wind,
+			'vwin': v_wind,
+			'wwin': w_wind }
 
-		# # pandas dataframe for cfradial file
-		# d={'lats':cfrad_lats,'lons':cfrad_lons}
-		# df_cfrad=pd.DataFrame(data=d,index=cfrad_timestamp)
+		# df_cfrad=pd.DataFrame(data=d,index=cfrad_start_datetime)
 		# df_cfrad_new=df_cfrad.copy()
-
-		# for t in np.arange(nstamps):
-		# 	timestamp=str(unique_timestamp[t])
-		# 	new_lats=df_stdtape[timestamp]['lats']
-		# 	new_lons=df_stdtape[timestamp]['lons']
-		# 	df_cfrad_new.loc[timestamp,'lats']=new_lats
-		# 	df_cfrad_new.loc[timestamp,'lons']=new_lons
-
-
-		# cfrad_file.variables['latitude'][:]=df_cfrad_new['lats'].values
-		# cfrad_file.variables['longitude'][:]=df_cfrad_new['lons'].values
+		df.loc[cfrad_start_datetime] = pd.Series(d)
 
 
 		# close the file.
 		cfrad_file.close()
+
+	df.sort(ascending=True, inplace=True)
+	
+	print ' Exporting to Excel file:'
+	outpath='/home/rvalenzuela/cfradial_metadata_'+cfrad_set+'.xlsx'
+	print ' '+outpath
+	df.to_excel(outpath,sheet_name='Sheet1')
+	print ' Done'
 
 def average(list_of_values):
 	return sum(list_of_values)/float(len(list_of_values))
