@@ -2,6 +2,15 @@
 
 # Read cfradial metadata
 # 
+"""
+This function is copied from ~/Github/pythonx to ~/bin.
+Therefore can be called from a directory containing 
+cfrad files or from any directory with syntax:
+
+$ read_cfradial_metadata.py . (current directory)
+or
+$ read_cfradial_metadata.py [full path to cfradial directory]
+"""
 #
 # Raul Valenzuela
 # May, 2015
@@ -9,13 +18,15 @@
 from netCDF4 import Dataset
 import pandas as pd 
 from os import listdir
-from os.path import isfile, join
+from os.path import isfile, join, abspath
+import sys
 
-def main():
+def main(input_dir):
 	
 	# input folder
-	cfrad_set="leg03_cor"
-	mypath="/home/rvalenzuela/P3_v2/cfrad/c03/"+cfrad_set
+	# cfrad_set="leg03_cor"
+	# mypath="/home/rvalenzuela/P3_v2/cfrad/c03/"+cfrad_set
+	mypath=input_dir
 
 	# list of files
 	cfrad_list = [ f for f in listdir(mypath) if isfile(join(mypath,f)) ]
@@ -42,8 +53,9 @@ def main():
 		'wwin')
 	df = pd.DataFrame(columns=cols)
 
+	current_path=abspath(mypath)
 	print ' Reading metadata in'
-	print ' '+mypath
+	print ' '+current_path
 	for f in range(nlist):
 		# open cfradial file for reading and writing
 		cfrad_file = Dataset(mypath+"/"+cfrad_list[f],'r') 
@@ -112,7 +124,8 @@ def main():
 	df.sort(ascending=True, inplace=True)
 	
 	print ' Exporting to Excel file:'
-	outpath='/home/rvalenzuela/cfradial_metadata_'+cfrad_set+'.xlsx'
+	# outpath='/home/rvalenzuela/cfradial_metadata_'+cfrad_set+'.xlsx'
+	outpath=current_path+current_path[-10:]+'_metadata.xlsx'
 	print ' '+outpath
 	df.to_excel(outpath,sheet_name='Sheet1')
 	print ' Done'
@@ -122,4 +135,4 @@ def average(list_of_values):
 
 # call main function
 if __name__ == "__main__":
-	main()
+	main(sys.argv[1])
