@@ -2,15 +2,6 @@
 
 # Read cfradial metadata
 # 
-"""
-This function is copied from ~/Github/pythonx to ~/bin.
-Therefore can be called from a directory containing 
-cfrad files or from any directory with syntax:
-
-$ read_cfradial_metadata.py . (current directory)
-or
-$ read_cfradial_metadata.py [full path to cfradial directory]
-"""
 #
 # Raul Valenzuela
 # May, 2015
@@ -18,8 +9,22 @@ $ read_cfradial_metadata.py [full path to cfradial directory]
 from netCDF4 import Dataset
 import pandas as pd 
 from os import listdir
-from os.path import isfile, join, abspath
+from os.path import isfile, join, abspath, basename
 import sys
+
+def usage():
+
+	S="""
+	This function is copied from ~/Github/pythonx to ~/bin.
+	Thus, it can be called from a directory containing 
+	cfrad files or from any directory with syntax:
+	
+	$ read_cfradial_metadata.py . (current directory)
+	or
+	$ read_cfradial_metadata.py [full path to cfradial directory]
+	"""
+
+	print S
 
 def main(input_dir):
 	
@@ -125,7 +130,7 @@ def main(input_dir):
 	
 	print ' Exporting to Excel file:'
 	# outpath='/home/rvalenzuela/cfradial_metadata_'+cfrad_set+'.xlsx'
-	outpath=current_path+current_path[-10:]+'_metadata.xlsx'
+	outpath=current_path+'/'+basename(current_path)+'_metadata.xlsx'
 	print ' '+outpath
 	df.to_excel(outpath,sheet_name='Sheet1')
 	print ' Done'
@@ -135,4 +140,8 @@ def average(list_of_values):
 
 # call main function
 if __name__ == "__main__":
-	main(sys.argv[1])
+	if len(sys.argv) == 1:
+		usage()
+		exit()
+	else:
+		main(sys.argv[1])
