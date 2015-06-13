@@ -42,7 +42,7 @@ home = expanduser("~")
 tilt_angle=19.5
 distance=45; #[km] beam length
 dem_file = home+'/Github/RadarQC/merged_dem_38-39_123-124_extended.tif'
-stdtape_filepath=home+"/Github/correct_coords/010123I.nc"
+stdtape_filepath=home+"/Github/correct_dorade_metadata/010123I.nc"
 
 def usage():
 	print "\nUsage examples:"
@@ -82,6 +82,7 @@ def getInputs(argv):
 	# if output file already exists deploy it and exist
 	outfile="profile_"+time.replace(" ","_")+"_"+type_scan+".png"
 	if isfile("./"+outfile):
+		# eog is unix utility for visualizing images
 		call(["eog", outfile])		
 		exit()
 
@@ -245,7 +246,7 @@ def plot_profile(dist,alt, line_prof, layer, gt,radar_position):
 
 	# dem
 	im=ax1.imshow(dtm, cmap='gist_earth', extent=clip)
-	# fig.colorbar().colorbar(ax=ax1)
+
 	cbar=plt.colorbar(im,ax=ax1)
 
 	# left line
