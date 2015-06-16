@@ -61,7 +61,7 @@ def main(filepath, stdfile):
 	F=T.Flightpath(S.start, S.end)
 
 	""" print shape of attribute arrays """
-	# S.print_shapes()
+	S.print_shapes()
 
 	""" print global attirutes of cedric synthesis """
 	# S.print_global_atts()
@@ -75,17 +75,17 @@ def main(filepath, stdfile):
 	#		[north, east, south, west]
 	bound=[max(S.Y), max(S.X), min(S.Y), min(S.X)] # in km 
 	cartesian_dist=map(abs,bound) # absolute value
-	S.set_geoBoundary(cartesian_dist)
+	# S.set_geoBoundary(cartesian_dist)
 
 	""" make plots """
 	# plot_synth(S,F,"DBZ")
-	plot_synth(S,F,"U")
-	plot_synth(S,F,"V")
+	# plot_synth(S,F,"U")
+	# plot_synth(S,F,"V")
 	# plot_synth(S,F,"SPD")
 	# plot_synth(S,F,"CONV")
 	# plot_synth(S,F,"VOR")
 
-	plt.show()	
+	# plt.show()	
 
 
 def plot_synth(obj,fpath,var):

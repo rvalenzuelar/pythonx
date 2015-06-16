@@ -17,6 +17,7 @@
 #
 
 from netCDF4 import Dataset
+from geographiclib.geodesic import Geodesic
 import pandas as pd	
 import datetime
 import numpy as np
@@ -84,12 +85,14 @@ class Synthesis(object):
 		self.CONV = self.read_synth('CONM2')
 		self.DBZ = self.read_synth('MAXDZ')
 		self.SPD = self.get_windspd()
+		self.LAT = self.set_geoGrid('latitude')
+		self.LON = self.set_geoGrid('longitude')
 		self.start = self.read_time('start')
 		self.end = self.read_time('end')
-		self.lat_top = []
-		self.lat_bot = []
-		self.lon_left = []
-		self.lon_right = []
+		# self.lat_top = []
+		# self.lat_bot = []
+		# self.lon_left = []
+		# self.lon_right = []
 
 	def read_synth(self, var):
 
@@ -151,8 +154,11 @@ class Synthesis(object):
 		print "\nArray shapes:"
 		print "--------------------"
 		for attr, value in self.__dict__.iteritems():	
-			if attr not in ['file', 'start','end']:
-				print ( "%4s = %s" % (attr, value.shape) )
+			if attr not in ['file', 'start','end'] and len(value)>0:
+				try:
+					print ( "%4s = %s" % (attr, value.shape) )
+				except AttributeError:
+					print ( "%4s = %s" % (attr, len(value) ) )
 		print ""
 
 	def print_global_atts(self):
@@ -185,27 +191,52 @@ class Synthesis(object):
 		# close netCDF  file.
 		synth.close()
 
-	def set_geoBoundary(self,cartDist):
+	def set_geoGrid(self, geo_axis):
 
-		azimuth=[str(x) for x in [0,90,180,270]]
+		## def set_geoBoundary(self,cartDist):
+		# azimuth=[str(x) for x in [0,90,180,270]]
 
-		for dist,az in zip(cartDist,azimuth):
+		# for dist,az in zip(cartDist,azimuth):
 
-			val = str(dist*1000)
-			ref_point = ['38.333205','-123.048098'] # Bodega Bay			
-			cmd1=('echo',val)
-			ps=subprocess.Popen( cmd1, stdout=subprocess.PIPE )
-			cmd2=('GeodSolve', '-l',ref_point[0],ref_point[1],az )
-			out=subprocess.check_output( cmd2, stdin=ps.stdout)
+		# 	val = str(dist*1000)
+		# 	ref_point = ['38.333205','-123.048098'] # Bodega Bay			
+		# 	cmd1=('echo',val)
+		# 	ps=subprocess.Popen( cmd1, stdout=subprocess.PIPE )
+		# 	cmd2=('GeodSolve', '-l',ref_point[0],ref_point[1],az )
+		# 	out=subprocess.check_output( cmd2, stdin=ps.stdout)
 			
-			if az == '0':
-				self.lat_top = float(out.split()[0])
-			elif az == '90':
-				self.lon_right = float(out.split()[1])
-			elif az == '180':
-				self.lat_bot = float(out.split()[0])
-			elif az == '270':		
-				self.lon_left = float(out.split()[1])
+		# 	if az == '0':
+		# 		self.lat_top = float(out.split()[0])
+		# 	elif az == '90':
+		# 		self.lon_right = float(out.split()[1])
+		# 	elif az == '180':
+		# 		self.lat_bot = float(out.split()[0])
+		# 	elif az == '270':		
+		# 		self.lon_left = float(out.split()[1])
+
+		ref_point = [38.3191, -123.0729] # Bodega Bay
+		geo_grid = []
+		if geo_axis == 'longitude':
+			for x in self.X:
+				if x <0:
+					az=270
+				else:
+					az=90
+				line = Geodesic.WGS84.Line(ref_point[0], ref_point[1], az)
+				geo_grid.append( line.Position( x*1000) )
+			return np.asarray(geo_grid)
+		elif geo_axis == 'latitude':
+			for y in self.Y:
+				if y <0:
+					az=180
+				else:
+					az=0
+				line = Geodesic.WGS84.Line(ref_point[0], ref_point[1], az)
+				geo_grid.append( line.Position( y*1000) )
+			return np.asarray(geo_grid)
+		else:
+			print "Error in geo_axis name"
+			exit()
 			
 	def get_windspd(self):
 
