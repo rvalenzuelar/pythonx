@@ -15,8 +15,8 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 from mpl_toolkits.basemap import Basemap
 import sys
 import matplotlib.pyplot as plt
-import cartopy.crs as ccrs
 import AircraftAnalysis as aa 
+import argparse
 
 def usage():
 
@@ -72,19 +72,22 @@ def main(filepath, stdfile):
 	print "Synthesis end time :%s\n" % S.end
 
 	""" make plots """
-	plot_synth(S,F,"DBZ")
-	# plot_synth(S,F,"U")
-	# plot_synth(S,F,"V")
-	# plot_synth(S,F,"SPD")
-	# plot_synth(S,F,"CONV")
-	# plot_synth(S,F,"VOR")
+	plot_synth(S,F,var="DBZ",windb=True)
+	# plot_synth(S,F,var="U")
+	# plot_synth(S,F,var="V")
+	# plot_synth(S,F,var="SPD")
+	# plot_synth(S,F,var="CONV")
+	# plot_synth(S,F,var="VOR")
 
 	plt.show()	
 
 
-def plot_synth(obj,fpath,var):
+def plot_synth(obj,fpath,**kwargs):
 
+	var=kwargs['var']
+	windb=kwargs['windb']
 
+	# define colormap range
 	if var == 'DBZ':
 		cmap_value=[-15,45]
 	elif var in ['U','V']:
@@ -106,10 +109,6 @@ def plot_synth(obj,fpath,var):
 	lat_top=max(obj.LAT)
 	lon_left=min(obj.LON)
 	lon_right=max(obj.LON)
-
-	# store fields and vertical levels
-	arrays = [array[:,:,i+1] for i in range(6)]
-	levels = [i+1 for i in range(6)]
 
 	plot_grids=ImageGrid( 	fig,111,
 						nrows_ncols = (3,2),
@@ -138,12 +137,16 @@ def plot_synth(obj,fpath,var):
 	flight_lat=fp[0]
 	flight_lon=fp[1]
 
+	# store fields and vertical levels
+	arrays = [array[:,:,i+1] for i in range(6)]
+	levels = [i+1 for i in range(6)]
+
 	# make gridded plot
 	for g,field,k in zip(plot_grids,arrays,levels):
 
 		g.plot(loncoast,latcoast, color='b')
 		g.plot(flight_lon,flight_lat)
-		g.barbs(-123.5,38.5,5,5)
+		
 		im = g.imshow(	field.T,
 							interpolation='none',
 							origin='lower',
@@ -162,8 +165,23 @@ def plot_synth(obj,fpath,var):
 				verticalalignment='center',
 				transform=g.transAxes)
 
+	if windb:
+		U=getattr(obj,'U')		
+		V=getattr(obj,'V')		
+		Uarray = [U[:,:,i+1] for i in range(6)]
+		Varray = [V[:,:,i+1] for i in range(6)]
 
- 	
+ 		for g,u,v in zip(plot_grids,Uarray,Varray):
+		
+			jump=5
+			x=obj.LON[::jump]
+			y=obj.LAT[::jump]
+			uu= u.T[::jump,::jump]
+			vv=v.T[::jump,::jump]
+ 			g.barbs( x , y , uu , vv ,length=5)
+ 			g.set_xlim(lon_left,lon_right)
+ 			g.set_ylim(lat_bot, lat_top)
+
  	# add color bar
  	plot_grids.cbar_axes[0].colorbar(im)
 
