@@ -3,7 +3,7 @@
 #
 # Included classes:
 #
-# Stdtade:
+# Stdtape:
 #	Stdtape files contains flight level information, where
 #	latitude and longitude coordinates are corrected
 #	using GPS+INS
