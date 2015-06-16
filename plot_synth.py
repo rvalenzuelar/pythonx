@@ -61,7 +61,7 @@ def main(filepath, stdfile):
 	F=T.Flightpath(S.start, S.end)
 
 	""" print shape of attribute arrays """
-	S.print_shapes()
+	# S.print_shapes()
 
 	""" print global attirutes of cedric synthesis """
 	# S.print_global_atts()
@@ -71,21 +71,15 @@ def main(filepath, stdfile):
 	print "\nSynthesis start time :%s" % S.start
 	print "Synthesis end time :%s\n" % S.end
 
-	""" set geographic boundary for plotting """
-	#		[north, east, south, west]
-	bound=[max(S.Y), max(S.X), min(S.Y), min(S.X)] # in km 
-	cartesian_dist=map(abs,bound) # absolute value
-	# S.set_geoBoundary(cartesian_dist)
-
 	""" make plots """
-	# plot_synth(S,F,"DBZ")
+	plot_synth(S,F,"DBZ")
 	# plot_synth(S,F,"U")
 	# plot_synth(S,F,"V")
 	# plot_synth(S,F,"SPD")
 	# plot_synth(S,F,"CONV")
 	# plot_synth(S,F,"VOR")
 
-	# plt.show()	
+	plt.show()	
 
 
 def plot_synth(obj,fpath,var):
@@ -107,6 +101,12 @@ def plot_synth(obj,fpath,var):
 	# add figure
 	fig = plt.figure(figsize=(8,12))
 
+	# geographic boundaries
+	lat_bot=min(obj.LAT)
+	lat_top=max(obj.LAT)
+	lon_left=min(obj.LON)
+	lon_right=max(obj.LON)
+
 	# store fields and vertical levels
 	arrays = [array[:,:,i+1] for i in range(6)]
 	levels = [i+1 for i in range(6)]
@@ -121,16 +121,16 @@ def plot_synth(obj,fpath,var):
 						cbar_mode="single")
 
 	M = Basemap(		projection='cyl',
-						llcrnrlat=obj.lat_bot,
-						urcrnrlat=obj.lat_top,
-						llcrnrlon=obj.lon_left,
-						urcrnrlon=obj.lon_right,
+						llcrnrlat=lat_bot,
+						urcrnrlat=lat_top,
+						llcrnrlon=lon_left,
+						urcrnrlon=lon_right,
 						resolution='i')
 
 	# retrieve coastline
 	coastline = M.coastpolygons
-	loncoast=coastline[1][0][15:-1]
-	latcoast=coastline[1][1][15:-1]
+	loncoast=coastline[1][0][13:-1]
+	latcoast=coastline[1][1][13:-1]
 
 	# flight path
 	# fp = zip(*fpath[::20])
@@ -147,10 +147,10 @@ def plot_synth(obj,fpath,var):
 		im = g.imshow(	field.T,
 							interpolation='none',
 							origin='lower',
-							extent=[	obj.lon_left,
-										obj.lon_right,
-										obj.lat_bot,
-										obj.lat_top ],
+							extent=[	lon_left,
+										lon_right,
+										lat_bot,
+										lat_top ],
 							vmin=cmap_value[0],
 							vmax=cmap_value[1])
 		g.grid(True)
