@@ -20,6 +20,7 @@ from netCDF4 import Dataset
 import pandas as pd	
 import datetime
 import numpy as np
+import subprocess
 
 
 class Stdtape(object):
@@ -80,10 +81,15 @@ class Synthesis(object):
 		self.WUP = self.read_synth('WUPF2')
 		self.WVA = self.read_synth('WVARF2')
 		self.VOR = self.read_synth('VORT2')
-		self.DIV = self.read_synth('CONM2')
+		self.CONV = self.read_synth('CONM2')
 		self.DBZ = self.read_synth('MAXDZ')
+		self.SPD = self.get_windspd()
 		self.start = self.read_time('start')
 		self.end = self.read_time('end')
+		self.lat_top = []
+		self.lat_bot = []
+		self.lon_left = []
+		self.lon_right = []
 
 	def read_synth(self, var):
 
@@ -179,5 +185,29 @@ class Synthesis(object):
 		# close netCDF  file.
 		synth.close()
 
+	def set_geoBoundary(self,cartDist):
 
+		azimuth=[str(x) for x in [0,90,180,270]]
+
+		for dist,az in zip(cartDist,azimuth):
+
+			val = str(dist*1000)
+			ref_point = ['38.333205','-123.048098'] # Bodega Bay			
+			cmd1=('echo',val)
+			ps=subprocess.Popen( cmd1, stdout=subprocess.PIPE )
+			cmd2=('GeodSolve', '-l',ref_point[0],ref_point[1],az )
+			out=subprocess.check_output( cmd2, stdin=ps.stdout)
+			
+			if az == '0':
+				self.lat_top = float(out.split()[0])
+			elif az == '90':
+				self.lon_right = float(out.split()[1])
+			elif az == '180':
+				self.lat_bot = float(out.split()[0])
+			elif az == '270':		
+				self.lon_left = float(out.split()[1])
+			
+	def get_windspd(self):
+
+		return np.sqrt(self.U**2+self.V**2)
 
