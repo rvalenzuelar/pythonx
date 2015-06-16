@@ -71,26 +71,34 @@ def main(filepath, stdfile):
 	print "\nSynthesis start time :%s" % S.start
 	print "Synthesis end time :%s\n" % S.end
 
+	""" set geographic boundary for plotting """
+	#		[north, east, south, west]
+	bound=[max(S.Y), max(S.X), min(S.Y), min(S.X)] # in km 
+	cartesian_dist=map(abs,bound) # absolute value
+	S.set_geoBoundary(cartesian_dist)
+
 	""" make plots """
-	plot_synth(S,F,"DBZ")
+	# plot_synth(S,F,"DBZ")
 	plot_synth(S,F,"U")
 	plot_synth(S,F,"V")
-	plot_synth(S,F,"DIV")
-	plot_synth(S,F,"VOR")
+	# plot_synth(S,F,"SPD")
+	# plot_synth(S,F,"CONV")
+	# plot_synth(S,F,"VOR")
 
 	plt.show()	
 
+
 def plot_synth(obj,fpath,var):
 
-	# define geographic boundary
-	clip=[-124.45, -122.35,37.9,39.7]
 
 	if var == 'DBZ':
 		cmap_value=[-15,45]
 	elif var in ['U','V']:
 		cmap_value=[-5,15]
+	elif var == 'SPD':
+		cmap_value=[5,15]
 	else:
-		cmap_value=[-2,2]
+		cmap_value=[-1,1]
 
 	# get array
 	array=getattr(obj,var)
@@ -99,6 +107,7 @@ def plot_synth(obj,fpath,var):
 	# add figure
 	fig = plt.figure(figsize=(8,12))
 
+	# store fields and vertical levels
 	arrays = [array[:,:,i+1] for i in range(6)]
 	levels = [i+1 for i in range(6)]
 
@@ -112,10 +121,10 @@ def plot_synth(obj,fpath,var):
 						cbar_mode="single")
 
 	M = Basemap(		projection='cyl',
-						llcrnrlat=clip[2],
-						urcrnrlat=clip[3],
-						llcrnrlon=clip[0],
-						urcrnrlon=clip[1],
+						llcrnrlat=obj.lat_bot,
+						urcrnrlat=obj.lat_top,
+						llcrnrlon=obj.lon_left,
+						urcrnrlon=obj.lon_right,
 						resolution='i')
 
 	# retrieve coastline
@@ -126,18 +135,22 @@ def plot_synth(obj,fpath,var):
 	# flight path
 	# fp = zip(*fpath[::20])
 	fp = zip(*fpath[::5])
-	fp_lat=fp[0]
-	fp_lon=fp[1]
+	flight_lat=fp[0]
+	flight_lon=fp[1]
 
 	# make gridded plot
-	for g,value,k in zip(plot_grids,arrays,levels):
+	for g,field,k in zip(plot_grids,arrays,levels):
 
 		g.plot(loncoast,latcoast, color='b')
-		g.plot(fp_lon,fp_lat)
-		im = g.imshow(	value,
+		g.plot(flight_lon,flight_lat)
+		g.barbs(-123.5,38.5,5,5)
+		im = g.imshow(	field.T,
 							interpolation='none',
 							origin='lower',
-							extent=clip,
+							extent=[	obj.lon_left,
+										obj.lon_right,
+										obj.lat_bot,
+										obj.lat_top ],
 							vmin=cmap_value[0],
 							vmax=cmap_value[1])
 		g.grid(True)
@@ -160,7 +173,6 @@ def plot_synth(obj,fpath,var):
 	plt.tight_layout()
 	plt.draw()
 	
-
 
 
 
