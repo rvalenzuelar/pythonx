@@ -20,16 +20,15 @@ import argparse
 
 def usage():
 
-	desc=	"""
-		This function is copied from ~/Github/pythonx to ~/bin.
-		Thus, it can be called from a directory containing 
-		netCDF4 files or from any directory with syntax:
-			
-		$ read_cfradial_metadata.py [path to netCDF file]
-		"""
+	desc="""
+------------------------------------------------------------------------------	
+Script for plotting NOAA-P3 Dual-Doppler analyses derived
+from CEDRIC. 
+------------------------------------------------------------------------------
+"""
 	print desc
 
-def main(filepath, stdfile):
+def main(filepath, stdfile,plotFields):
 	
 	# base directory
 	basedirectory = "/home/rvalenzuela/P3_v2/synth_test/"
@@ -68,16 +67,17 @@ def main(filepath, stdfile):
 	
 
 	""" print synthesis time """
-	print "\nSynthesis start time :%s" % S.start
+	print "Synthesis start time :%s" % S.start
 	print "Synthesis end time :%s\n" % S.end
 
 	""" make plots """
-	plot_synth(S,F,var="DBZ",windb=True)
-	# plot_synth(S,F,var="U")
-	# plot_synth(S,F,var="V")
-	# plot_synth(S,F,var="SPD")
-	# plot_synth(S,F,var="CONV")
-	# plot_synth(S,F,var="VOR")
+	for f in plotFields:
+		plot_synth(S,F,var=f,windb=True)
+		# plot_synth(S,F,var="U")
+		# plot_synth(S,F,var="V")
+		# plot_synth(S,F,var="SPD")
+		# plot_synth(S,F,var="CONV")
+		# plot_synth(S,F,var="VOR")
 
 	plt.show()	
 
@@ -196,8 +196,24 @@ def plot_synth(obj,fpath,**kwargs):
 
 # call main function
 if __name__ == "__main__":
-	if len(sys.argv) == 1:
-		usage()
-		exit()
-	else:
-		main(sys.argv[1], sys.argv[2])
+
+	parser = argparse.ArgumentParser(	description=usage(),
+											formatter_class=argparse.RawTextHelpFormatter)
+	parser.add_argument("CEDRICfile", 
+							type=str, 
+							help="CEDRIC synthesis file in netCDF format. \nExample: 03/leg01.cdf")
+	parser.add_argument("STDTAPEfile", 
+							type=str, 
+							help="NOAA-P3 standard tape file in netCDF format.\nExample: 010123I.nc")
+	parser.add_argument("--fields", 
+							type=str, 
+							nargs='*',
+							help="radar fields to be plotted")
+	parser.add_argument("--panel", 
+							type=int, 
+							nargs=1,
+							help="choose a panel [1-6]")	
+	args = parser.parse_args()	
+
+	main(args.CEDRICfile, args.STDTAPEfile,args.fields)
+
