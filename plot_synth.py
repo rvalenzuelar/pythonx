@@ -17,6 +17,7 @@ import sys
 import matplotlib.pyplot as plt
 import AircraftAnalysis as aa 
 import argparse
+import numpy.ma as ma
 
 def usage():
 
@@ -28,7 +29,7 @@ from CEDRIC.
 """
 	print desc
 
-def main(filepath, stdfile,plotFields):
+def main(filepath, stdfile,plotFields, panelOpt):
 	
 	# base directory
 	basedirectory = "/home/rvalenzuela/P3_v2/synth_test/"
@@ -71,13 +72,9 @@ def main(filepath, stdfile,plotFields):
 	print "Synthesis end time :%s\n" % S.end
 
 	""" make plots """
+
 	for f in plotFields:
-		plot_synth(S,F,var=f,windb=True)
-		# plot_synth(S,F,var="U")
-		# plot_synth(S,F,var="V")
-		# plot_synth(S,F,var="SPD")
-		# plot_synth(S,F,var="CONV")
-		# plot_synth(S,F,var="VOR")
+		plot_synth(S,F,var=f,windb=True, panel=panelOpt)
 
 	plt.show()	
 
@@ -86,6 +83,36 @@ def plot_synth(obj,fpath,**kwargs):
 
 	var=kwargs['var']
 	windb=kwargs['windb']
+	panel=kwargs['panel']
+
+	# get array
+	array=getattr(obj,var)
+	zlevel=getattr(obj,'Z')
+	U=getattr(obj,'U')		
+	V=getattr(obj,'V')	
+
+	# set some plotting values and stores
+	# vertical level in a list of arrays
+	if panel:
+		figure_size=(8,8)
+		rows_cols=(1,1)
+		windb_size=6.5
+		windb_jump=4
+		ztext_size=12
+		arrays = [array[:,:,panel[0]] for i in range(6)]
+		levels = [panel[0] for i in range(6)]	
+		Uarray = [U[:,:,panel[0]] for i in range(6)]
+		Varray = [V[:,:,panel[0]] for i in range(6)]			
+	else:
+		figure_size=(8,12)
+		rows_cols=(3,2)
+		windb_size=5
+		windb_jump=5
+		ztext_size=10
+		arrays = [array[:,:,i+1] for i in range(6)]
+		levels = [i+1 for i in range(6)]
+		Uarray = [U[:,:,i+1] for i in range(6)]
+		Varray = [V[:,:,i+1] for i in range(6)]
 
 	# define colormap range
 	if var == 'DBZ':
@@ -97,27 +124,23 @@ def plot_synth(obj,fpath,**kwargs):
 	else:
 		cmap_value=[-1,1]
 
-	# get array
-	array=getattr(obj,var)
-	zlevel=getattr(obj,'Z')
-
 	# add figure
-	fig = plt.figure(figsize=(8,12))
-
+	fig = plt.figure(figsize=figure_size)
+	
 	# geographic boundaries
 	lat_bot=min(obj.LAT)
 	lat_top=max(obj.LAT)
 	lon_left=min(obj.LON)
 	lon_right=max(obj.LON)
 
-	plot_grids=ImageGrid( 	fig,111,
-						nrows_ncols = (3,2),
-						axes_pad = 0.0,
-						add_all = True,
-						share_all=False,
-						label_mode = "L",
-						cbar_location = "top",
-						cbar_mode="single")
+	plot_grids=ImageGrid( fig,111,
+							nrows_ncols = rows_cols,
+							axes_pad = 0.0,
+							add_all = True,
+							share_all=False,
+							label_mode = "L",
+							cbar_location = "top",
+							cbar_mode="single")
 
 	M = Basemap(		projection='cyl',
 						llcrnrlat=lat_bot,
@@ -131,18 +154,17 @@ def plot_synth(obj,fpath,**kwargs):
 	loncoast=coastline[1][0][13:-1]
 	latcoast=coastline[1][1][13:-1]
 
-	# flight path
-	# fp = zip(*fpath[::20])
-	fp = zip(*fpath[::5])
+	# flight path from standard tape
+	jmp=5
+	fp = zip(*fpath[::jmp])
 	flight_lat=fp[0]
 	flight_lon=fp[1]
 
-	# store fields and vertical levels
-	arrays = [array[:,:,i+1] for i in range(6)]
-	levels = [i+1 for i in range(6)]
-
+	# creates iterator group
+	group=zip(plot_grids,arrays,levels)
+	
 	# make gridded plot
-	for g,field,k in zip(plot_grids,arrays,levels):
+	for g,field,k in group:
 
 		g.plot(loncoast,latcoast, color='b')
 		g.plot(flight_lon,flight_lat)
@@ -160,32 +182,28 @@ def plot_synth(obj,fpath,**kwargs):
 		ztext='MSL='+str(zlevel[k])+'km'
 		g.text(	0.1, 0.08,
 				ztext,
-				fontsize=10,
+				fontsize=ztext_size,
 				horizontalalignment='left',
 				verticalalignment='center',
 				transform=g.transAxes)
 
-	if windb:
-		U=getattr(obj,'U')		
-		V=getattr(obj,'V')		
-		Uarray = [U[:,:,i+1] for i in range(6)]
-		Varray = [V[:,:,i+1] for i in range(6)]
-
+	if windb:	
  		for g,u,v in zip(plot_grids,Uarray,Varray):
-		
-			jump=5
-			x=obj.LON[::jump]
-			y=obj.LAT[::jump]
-			uu= u.T[::jump,::jump]
-			vv=v.T[::jump,::jump]
- 			g.barbs( x , y , uu , vv ,length=5)
+			x=obj.LON[::windb_jump]
+			y=obj.LAT[::windb_jump]
+			uu= u.T[::windb_jump,::windb_jump]
+			vv=v.T[::windb_jump,::windb_jump]
+ 			g.barbs( x , y , uu , vv ,length=windb_size)
  			g.set_xlim(lon_left,lon_right)
  			g.set_ylim(lat_bot, lat_top)
 
  	# add color bar
  	plot_grids.cbar_axes[0].colorbar(im)
-
- 	fig.suptitle(' Dual-Doppler Synthesis: '+var )
+ 	var_title={	'DBZ': 'Reflectivity factor [dBZ]',
+ 				'SPD': 'Wind speed [m/s]',
+ 				'VOR': 'Vorticity',
+ 				'CONV': 'Convergence'}
+ 	fig.suptitle(' Dual-Doppler Synthesis: '+var_title[var] )
 
 	# show figure
 	plt.tight_layout()
@@ -200,20 +218,37 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser(	description=usage(),
 											formatter_class=argparse.RawTextHelpFormatter)
 	parser.add_argument("CEDRICfile", 
-							type=str, 
 							help="CEDRIC synthesis file in netCDF format. \nExample: 03/leg01.cdf")
 	parser.add_argument("STDTAPEfile", 
-							type=str, 
 							help="NOAA-P3 standard tape file in netCDF format.\nExample: 010123I.nc")
-	parser.add_argument("--fields", 
-							type=str, 
-							nargs='*',
-							help="radar fields to be plotted")
 	parser.add_argument("--panel", 
 							type=int, 
 							nargs=1,
-							help="choose a panel [1-6]")	
+							help="choose a panel [1-6]")
+
+	group = parser.add_mutually_exclusive_group()
+
+	group.add_argument("--all", 
+							action='store_true',
+							default=None,
+							help="plot all fields (DBZ,SPD,CONV,VOR)")
+	group.add_argument("--fields", 
+							nargs='+',
+							help="specify radar fields to be plotted")	
+								
 	args = parser.parse_args()	
 
-	main(args.CEDRICfile, args.STDTAPEfile,args.fields)
+	if args.all:
+		args.fields=['DBZ','SPD','CONV','VOR']
+
+	if args.fields:		
+		for f in args.fields:
+			if f not in ['DBZ','SPD','CONV','VOR']:
+				print "Indicate field(s): DBZ,SPD,CONV,VOR\n"
+				exit()
+
+	main(	args.CEDRICfile, 
+			args.STDTAPEfile,
+			args.fields,
+			args.panel)
 
