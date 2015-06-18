@@ -19,6 +19,8 @@ import matplotlib.pyplot as plt
 import AircraftAnalysis as aa 
 import argparse
 import scipy.ndimage
+import numpy as np 
+# import numpy.ma as ma 
 
 def usage():
 
@@ -30,8 +32,16 @@ from CEDRIC.
 """
 	print desc
 
-def main(filepath, stdfile,plotFields, panelOpt):
+def main( args ):
 	
+	filepath = args.ced
+	stdfile = args.std
+	plotFields = args.field 
+	panelNum = args.panel
+	sliceNum = args.slice
+	sliceOrient = args.orientation
+	zoomOpt = args.zoomin
+
 	# base directory
 	basedirectory = "/home/rvalenzuela/P3_v2/synth_test/"
 	stdtapedir = "/home/rvalenzuela/Github/correct_dorade_metadata/"
@@ -53,7 +63,11 @@ def main(filepath, stdfile,plotFields, panelOpt):
 		exit()
 
 	""" creates a synthesis """
-	S=aa.Synthesis(filepath)
+	try:
+		S=aa.Synthesis(filepath)
+	except RuntimeError:
+		print "Input Error: check file names\n"
+		exit()
 
 	""" creates a std tape """
 	T=aa.Stdtape(stdtapedir+stdfile)
@@ -75,7 +89,13 @@ def main(filepath, stdfile,plotFields, panelOpt):
 	""" make plots """
 
 	for f in plotFields:
-		plot_synth(S,F,var=f,windb=True, panel=panelOpt)
+		plot_synth(S,F,
+					var=f,
+					windb=True,
+					panel=panelNum,
+					sliceN=sliceNum,
+					sliceO=sliceOrient,
+					zoomIn=zoomOpt)
 
 	plt.show()	
 
@@ -85,6 +105,9 @@ def plot_synth(obj,fpath,**kwargs):
 	var=kwargs['var']
 	windb=kwargs['windb']
 	panel=kwargs['panel']
+	slicen=kwargs['sliceN']
+	sliceo=kwargs['sliceO']
+	zoomin=kwargs['zoomIn']
 
 	# get array
 	array=getattr(obj,var)
@@ -133,14 +156,42 @@ def plot_synth(obj,fpath,**kwargs):
 		cmap_value=[-1,1]
 		cmap_name='jet'
 
-	# add figure
-	fig = plt.figure(figsize=figure_size)
-	
-	# geographic boundaries
+	# general  geographic domain boundaries
 	lat_bot=min(obj.LAT)
 	lat_top=max(obj.LAT)
 	lon_left=min(obj.LON)
 	lon_right=max(obj.LON)
+
+	M = Basemap(		projection='cyl',
+						llcrnrlat=lat_bot,
+						urcrnrlat=lat_top,
+						llcrnrlon=lon_left,
+						urcrnrlon=lon_right,
+						resolution='i')
+
+	# flight path from standard tape
+	jmp=5
+	fp = zip(*fpath[::jmp])
+	flight_lat=fp[0]
+	flight_lon=fp[1]
+
+	# zoom-in option
+	if zoomin: 
+		if zoomin[0] == 'offshore':
+			lat_bot=38.1
+			lat_top=39.1
+			lon_left=-124.1
+			lon_right=-122.9
+		elif zoomin[0] == 'onshore':
+			lat_bot=min(obj.LAT)
+			lat_top=max(obj.LAT)
+			lon_left=min(obj.LON)
+			lon_right=max(obj.LON)		
+		maskLat= np.logical_and(obj.LAT >= lat_bot, obj.LAT <= lat_top)
+		maskLon= np.logical_and(obj.LON >= lon_left, obj.LON <= lon_right)
+
+	# add figure
+	fig = plt.figure(figsize=(figure_size))
 
 	plot_grids=ImageGrid( fig,111,
 							nrows_ncols = rows_cols,
@@ -151,23 +202,10 @@ def plot_synth(obj,fpath,**kwargs):
 							cbar_location = "top",
 							cbar_mode="single")
 
-	M = Basemap(		projection='cyl',
-						llcrnrlat=lat_bot,
-						urcrnrlat=lat_top,
-						llcrnrlon=lon_left,
-						urcrnrlon=lon_right,
-						resolution='i')
-
 	# retrieve coastline
 	coastline = M.coastpolygons
 	loncoast=coastline[1][0][13:-1]
 	latcoast=coastline[1][1][13:-1]
-
-	# flight path from standard tape
-	jmp=5
-	fp = zip(*fpath[::jmp])
-	flight_lat=fp[0]
-	flight_lon=fp[1]
 
 	# creates iterator group
 	group=zip(plot_grids,arrays,levels)
@@ -178,16 +216,20 @@ def plot_synth(obj,fpath,**kwargs):
 		g.plot(loncoast,latcoast, color='b')
 		g.plot(flight_lon,flight_lat)
 		
-		im = g.imshow(	field.T,
-							interpolation='none',
-							origin='lower',
-							extent=[	lon_left,
-										lon_right,
-										lat_bot,
-										lat_top ],
-							vmin=cmap_value[0],
-							vmax=cmap_value[1],
-							cmap=cmap_name)
+		if zoomin:
+			# field=ma.array(field.data,mask=maskGrid.T)
+			field=field[maskLon][:,maskLat]
+
+		im = g.imshow(field.T,
+						interpolation='none',
+						origin='lower',
+						extent=[lon_left,
+								lon_right,
+								lat_bot,
+								lat_top ],
+						vmin=cmap_value[0],
+						vmax=cmap_value[1],
+						cmap=cmap_name)
 		g.grid(True)
 		ztext='MSL='+str(zlevel[k])+'km'
 		g.text(	0.1, 0.08,
@@ -197,10 +239,11 @@ def plot_synth(obj,fpath,**kwargs):
 				verticalalignment='center',
 				transform=g.transAxes)
 
-	if windb:	
- 		for g,u,v in zip(plot_grids,Uarray,Varray):
+		if windb:
 			x=obj.LON[::windb_jump]
-			y=obj.LAT[::windb_jump]
+			y=obj.LAT[::windb_jump]	
+			u=Uarray[k-1]
+			v=Varray[k-1]
 			uu= u.T[::windb_jump,::windb_jump]
 			vv=v.T[::windb_jump,::windb_jump]
  			# g.barbs( x , y , uu , vv ,length=windb_size)
@@ -220,7 +263,20 @@ def plot_synth(obj,fpath,**kwargs):
 	# show figure
 	plt.tight_layout()
 	plt.draw()
-	
+
+
+	# if slicen:
+	# 	# add figure
+	# 	fig = plt.figure(figsize=(8,10))
+
+	# 	plot_grids=ImageGrid( fig,111,
+	# 							nrows_ncols = (3,1),
+	# 							axes_pad = 0.0,
+	# 							add_all = True,
+	# 							share_all=False,
+	# 							label_mode = "L",
+	# 							cbar_location = "top",
+	# 							cbar_mode="single")
 
 
 
@@ -229,48 +285,71 @@ if __name__ == "__main__":
 
 	parser = argparse.ArgumentParser(	description=usage(),
 											formatter_class=argparse.RawTextHelpFormatter)
-	parser.add_argument('--ced','-c',
-							metavar='cedric_file',
+
+	""" Mandatory Arguments """
+	group_mandatory=parser.add_argument_group('Mandatory arguments')
+	group_mandatory.add_argument('--ced','-c',
+							metavar='file',
 							required=True,
-							help="CEDRIC synthesis file in netCDF format. \nExample: 03/leg01.cdf")
-	parser.add_argument('--std','-s' ,
-							metavar='stdtape_file',
+							help=	"netCDF CEDRIC synthesis with format CaseNumber/FileName." \
+									"\nExample: c03/leg01.cdf")
+	group_mandatory.add_argument('--std','-s' ,
+							metavar='file',
 							required=True,
-							help="NOAA-P3 standard tape file in netCDF format.\nExample: 010123I.nc")
-	parser.add_argument("--panel", 
+							help=	"netCDF NOAA-P3 standard tape file using RAF format." \
+									"\nExample: 010123I.nc")
+	
+	""" Optional Arguments """
+	group_optional=parser.add_argument_group('Optional arguments')
+	group_optional.add_argument('--panel', '-p',
+							metavar='num',
 							type=int, 
 							nargs=1,
 							default=None,
-							help="choose a panel [1-6]; otherwise plots a figure with 6 panles")
-
-	group_fields = parser.add_mutually_exclusive_group()
+							help="choose a panel (1-6); otherwise plots a figure with 6 panles")
+	group_optional.add_argument('--zoomin', '-z',
+							metavar='str',
+							nargs=1,
+							default=None,
+							choices=['offshore','onshore'],
+							help="zoom-in over a offshore|onshore flight leg")	
+	group_fields = group_optional.add_mutually_exclusive_group()
 	group_fields.add_argument('--all', '-a',
 							action='store_true',
 							default=None,
-							help="plot all fields (DBZ,SPD,CONV,VOR)")
+							help="[default] plot all fields (DBZ,SPD,CONV,VOR)")
 	group_fields.add_argument('--field', '-f',
+							metavar='str',
 							nargs='+',
+							choices=['DBZ','SPD','CONV','VOR'],
 							default=['DBZ','SPD','CONV','VOR'],
 							help="specify radar field(s) to be plotted")	
 
-	group_slides = parser.add_mutually_exclusive_group()
-	group_slides.add_argument('--slice', '-s',
+	""" Slice options """
+	group_slice=parser.add_argument_group('Slice options')
+	group_slice.add_argument('--slice', '-sl',
+							metavar='num',
 							type=int, 
 							nargs=1,
-							default=None,
-							help="number of slices")
-								
+							required=False,
+							help="number of slices (they are equally spaced)")
+	group_slice.add_argument('--orientation', '-o',
+							metavar='str',
+							nargs=1,
+							required=False,
+							help="orientation of slices (zonal, meridional, crossb")
+
 	args = parser.parse_args()	
 
-	if args.field:		
-		for f in args.field:
-			if f not in ['DBZ','SPD','CONV','VOR']:
-				print "Indicate field(s): DBZ,SPD,CONV,VOR\n"
-				sys.exit()
+	if args.slice and (args.orientation is None):
+		print "Error Indicate orientation of slices\n"
+		exit()
 
-
-	main(	args.ced, 
-			args.std,
-			args.field,
-			args.panel)
-
+	# main(	args.ced, 
+	# 		args.std,
+	# 		args.field,
+	# 		args.panel,
+	# 		args.slice,
+	# 		args.orientation,
+	# 		args.zoomin)
+	main(args)
