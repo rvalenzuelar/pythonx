@@ -5,6 +5,7 @@
 #
 # Check:
 # http://matplotlib.org/examples/axes_grid/demo_axes_grid2.html
+# http://stackoverflow.com/questions/7878398/how-to-extract-an-arbitrary-line-of-values-from-a-numpy-array
 #
 # Raul Valenzuela
 # June, 2015
@@ -17,7 +18,7 @@ import sys
 import matplotlib.pyplot as plt
 import AircraftAnalysis as aa 
 import argparse
-import numpy.ma as ma
+import scipy.ndimage
 
 def usage():
 
@@ -97,8 +98,10 @@ def plot_synth(obj,fpath,**kwargs):
 		figure_size=(8,8)
 		rows_cols=(1,1)
 		windb_size=6.5
-		windb_jump=4
+		windb_jump=2
 		ztext_size=12
+		windv_scale=0.5
+		windv_width=2
 		arrays = [array[:,:,panel[0]] for i in range(6)]
 		levels = [panel[0] for i in range(6)]	
 		Uarray = [U[:,:,panel[0]] for i in range(6)]
@@ -109,6 +112,8 @@ def plot_synth(obj,fpath,**kwargs):
 		windb_size=5
 		windb_jump=5
 		ztext_size=10
+		windv_scale=0.5
+		windv_width=2
 		arrays = [array[:,:,i+1] for i in range(6)]
 		levels = [i+1 for i in range(6)]
 		Uarray = [U[:,:,i+1] for i in range(6)]
@@ -117,12 +122,16 @@ def plot_synth(obj,fpath,**kwargs):
 	# define colormap range
 	if var == 'DBZ':
 		cmap_value=[-15,45]
+		cmap_name='jet'
 	elif var in ['U','V']:
 		cmap_value=[-5,15]
+		cmap_name='jet'
 	elif var == 'SPD':
 		cmap_value=[5,15]
+		cmap_name='YlGnBu_r'
 	else:
 		cmap_value=[-1,1]
+		cmap_name='jet'
 
 	# add figure
 	fig = plt.figure(figsize=figure_size)
@@ -177,7 +186,8 @@ def plot_synth(obj,fpath,**kwargs):
 										lat_bot,
 										lat_top ],
 							vmin=cmap_value[0],
-							vmax=cmap_value[1])
+							vmax=cmap_value[1],
+							cmap=cmap_name)
 		g.grid(True)
 		ztext='MSL='+str(zlevel[k])+'km'
 		g.text(	0.1, 0.08,
@@ -193,7 +203,9 @@ def plot_synth(obj,fpath,**kwargs):
 			y=obj.LAT[::windb_jump]
 			uu= u.T[::windb_jump,::windb_jump]
 			vv=v.T[::windb_jump,::windb_jump]
- 			g.barbs( x , y , uu , vv ,length=windb_size)
+ 			# g.barbs( x , y , uu , vv ,length=windb_size)
+ 			Q=g.quiver(x,y,uu,vv, units='dots', scale=windv_scale, scale_units='dots',width=windv_width)
+ 			qk=g.quiverkey(Q,0.8,0.08,10,r'$10 \frac{m}{s}$')
  			g.set_xlim(lon_left,lon_right)
  			g.set_ylim(lat_bot, lat_top)
 
@@ -217,38 +229,48 @@ if __name__ == "__main__":
 
 	parser = argparse.ArgumentParser(	description=usage(),
 											formatter_class=argparse.RawTextHelpFormatter)
-	parser.add_argument("CEDRICfile", 
+	parser.add_argument('--ced','-c',
+							metavar='cedric_file',
+							required=True,
 							help="CEDRIC synthesis file in netCDF format. \nExample: 03/leg01.cdf")
-	parser.add_argument("STDTAPEfile", 
+	parser.add_argument('--std','-s' ,
+							metavar='stdtape_file',
+							required=True,
 							help="NOAA-P3 standard tape file in netCDF format.\nExample: 010123I.nc")
 	parser.add_argument("--panel", 
 							type=int, 
 							nargs=1,
-							help="choose a panel [1-6]")
+							default=None,
+							help="choose a panel [1-6]; otherwise plots a figure with 6 panles")
 
-	group = parser.add_mutually_exclusive_group()
-
-	group.add_argument("--all", 
+	group_fields = parser.add_mutually_exclusive_group()
+	group_fields.add_argument('--all', '-a',
 							action='store_true',
 							default=None,
 							help="plot all fields (DBZ,SPD,CONV,VOR)")
-	group.add_argument("--fields", 
+	group_fields.add_argument('--field', '-f',
 							nargs='+',
-							help="specify radar fields to be plotted")	
+							default=['DBZ','SPD','CONV','VOR'],
+							help="specify radar field(s) to be plotted")	
+
+	group_slides = parser.add_mutually_exclusive_group()
+	group_slides.add_argument('--slice', '-s',
+							type=int, 
+							nargs=1,
+							default=None,
+							help="number of slices")
 								
 	args = parser.parse_args()	
 
-	if args.all:
-		args.fields=['DBZ','SPD','CONV','VOR']
-
-	if args.fields:		
-		for f in args.fields:
+	if args.field:		
+		for f in args.field:
 			if f not in ['DBZ','SPD','CONV','VOR']:
 				print "Indicate field(s): DBZ,SPD,CONV,VOR\n"
-				exit()
+				sys.exit()
 
-	main(	args.CEDRICfile, 
-			args.STDTAPEfile,
-			args.fields,
+
+	main(	args.ced, 
+			args.std,
+			args.field,
 			args.panel)
 
