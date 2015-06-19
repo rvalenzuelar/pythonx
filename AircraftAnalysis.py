@@ -218,5 +218,5 @@ class Synthesis(object):
 			
 	def get_windspd(self):
 
-		return np.sqrt(self.U**2+self.V**2)
+		return np.sqrt(self.U**2+self.V**2+self.WVA**2)
 
