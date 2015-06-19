@@ -15,7 +15,6 @@ from os.path import dirname, basename
 import sys
 import matplotlib.pyplot as plt
 import argparse
-import scipy.ndimage
 import AircraftAnalysis as aa 
 import AircraftPlot as ap
 
@@ -116,46 +115,17 @@ def plot_synth(S,F,**kwargs):
 	U=getattr(S,'U')		
 	V=getattr(S,'V')	
 
-	# set some plotting values and stores
-	# vertical level in a list of arrays
+	# set  vertical level in a list of arrays
 	if P.panel:
-		P.figure_size=(8,8)
-		P.rows_cols=(1,1)
-		P.windb_size=6.5
-		P.windb_jump=2
-		P.ztext_size=12
-		P.windv_scale=0.5
-		P.windv_width=2
 		arrays = [array[:,:,P.panel[0]] for i in range(6)]
 		levels = [zlevel[P.panel[0]] for i in range(6)]	
 		Uarray = [U[:,:,P.panel[0]] for i in range(6)]
 		Varray = [V[:,:,P.panel[0]] for i in range(6)]			
 	else:
-		P.figure_size=(8,12)
-		P.rows_cols=(3,2)
-		P.windb_size=5
-		P.windb_jump=5
-		P.ztext_size=10
-		P.windv_scale=0.5
-		P.windv_width=2
 		arrays = [array[:,:,i+1] for i in range(6)]
 		levels = [zlevel[i+1] for i in range(6)]
 		Uarray = [U[:,:,i+1] for i in range(6)]
-		Varray = [V[:,:,i+1] for i in range(6)]
-
-	# define colormap range
-	if P.var == 'DBZ':
-		P.cmap_value=[-15,45]
-		P.cmap_name='jet'
-	elif P.var in ['U','V']:
-		P.cmap_value=[-5,15]
-		P.cmap_name='jet'
-	elif P.var == 'SPD':
-		P.cmap_value=[5,15]
-		P.cmap_name='YlGnBu_r'
-	else:
-		P.cmap_value=[-1,1]
-		P.cmap_name='jet'
+		Varray = [V[:,:,i+1] for i in range(6)]	
 
 	# general  geographic domain boundaries
 	P.set_geographic(S)
@@ -169,7 +139,8 @@ def plot_synth(S,F,**kwargs):
 	# make horizontal plane plot
 	P.horizontal_plane(arrays,levels,ucomp=Uarray,vcomp=Varray)
 
-
+	# slices only available with zoomin option
+	P.vertical_plane(array)
 
 
 
@@ -231,6 +202,8 @@ if __name__ == "__main__":
 							metavar='str',
 							nargs=1,
 							required=False,
+							choices=['zonal','meridional','crossb'],
+							default=None,
 							help="orientation of slices (zonal, meridional, crossb")
 
 	args = parser.parse_args()	
