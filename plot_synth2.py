@@ -77,7 +77,6 @@ def main( args ):
 	""" print global attirutes of cedric synthesis """
 	# S.print_global_atts()
 	
-
 	""" print synthesis time """
 	print "Synthesis start time :%s" % S.start
 	print "Synthesis end time :%s\n" % S.end
@@ -110,37 +109,30 @@ def plot_synth(S,F,**kwargs):
 	P.zoomOpt=kwargs['zoomIn']
 
 	# get array
+	if P.var=='CON': 
+		P.var='CONV'
 	array=getattr(S,P.var)
 	zlevel=getattr(S,'Z')
 	U=getattr(S,'U')		
 	V=getattr(S,'V')	
+	W=getattr(S,'WVA')	
+	# W=getattr(S,'WUP')
 
-	# set  vertical level in a list of arrays
-	if P.panel:
-		arrays = [array[:,:,P.panel[0]] for i in range(6)]
-		levels = [zlevel[P.panel[0]] for i in range(6)]	
-		Uarray = [U[:,:,P.panel[0]] for i in range(6)]
-		Varray = [V[:,:,P.panel[0]] for i in range(6)]			
-	else:
-		arrays = [array[:,:,i+1] for i in range(6)]
-		levels = [zlevel[i+1] for i in range(6)]
-		Uarray = [U[:,:,i+1] for i in range(6)]
-		Varray = [V[:,:,i+1] for i in range(6)]	
-
-	# general  geographic domain boundaries
+	
+	""" general  geographic domain boundaries """
 	P.set_geographic(S)
 
-	# flight path from standard tape
+	""" flight path from standard tape """
 	P.set_flight_level(F)
 
-	# coast line
+	""" coast line """
 	P.set_coastline()
 
-	# make horizontal plane plot
-	P.horizontal_plane(arrays,levels,ucomp=Uarray,vcomp=Varray)
+	""" make horizontal plane plot """
+	P.horizontal_plane(array,zlevels=S.Z,ucomp=U,vcomp=V)
 
-	# slices only available with zoomin option
-	P.vertical_plane(array)
+	""" slices only available with zoomin option """
+	# P.vertical_plane(array,S.Z,ucomp=Uarray,vcomp=Varray,wcomp=Warray)
 
 
 
@@ -182,12 +174,12 @@ if __name__ == "__main__":
 	group_fields.add_argument('--all', '-a',
 							action='store_true',
 							default=None,
-							help="[default] plot all fields (DBZ,SPD,CONV,VOR)")
+							help="[default] plot all fields (DBZ,SPD,CON,VOR)")
 	group_fields.add_argument('--field', '-f',
 							metavar='str',
 							nargs='+',
-							choices=['DBZ','SPD','CONV','VOR'],
-							default=['DBZ','SPD','CONV','VOR'],
+							choices=['DBZ','SPD','CON','VOR'],
+							default=['DBZ','SPD','CON','VOR'],
 							help="specify radar field(s) to be plotted")	
 
 	""" Slice options """
