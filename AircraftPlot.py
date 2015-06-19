@@ -48,6 +48,7 @@ class SynthPlot(object):
 		self.scale=None
 		self.extent_vertical=[]
 		self.zvalues=[]
+		self.slice_type=None
 
 
 	def set_geographic(self,synth_obj):
@@ -88,21 +89,57 @@ class SynthPlot(object):
 		self.maskLat= np.logical_and(self.lats >= self.lat_bot, self.lats <= self.lat_top)
 		self.maskLon= np.logical_and(self.lons >= self.lon_left, self.lons <= self.lon_right)
 
-	def add_windvector(self,grid_ax,ucomp,vcomp):
+	def add_windvector(self,grid_ax,comp1,comp2):
 
-		x=self.lons[::self.windb_jump]
-		y=self.lats[::self.windb_jump]	
-		uu= ucomp.T[::self.windb_jump,::self.windb_jump]
-		vv=vcomp.T[::self.windb_jump,::self.windb_jump]
-		# g.barbs( x , y , uu , vv ,length=windb_size)
-		Q=grid_ax.quiver(x,y,uu,vv, 
-							units='dots', 
-							scale=self.windv_scale, 
-							scale_units='dots',
-							width=self.windv_width)
-		qk=grid_ax.quiverkey(Q,0.8,0.08,10,r'$10 \frac{m}{s}$')
-		grid_ax.set_xlim(self.lon_left,self.lon_right)
-		grid_ax.set_ylim(self.lat_bot, self.lat_top)
+		if self.slice_type == 'horizontal':
+			x=self.lons[::self.windb_jump]
+			y=self.lats[::self.windb_jump]	
+			uu= comp1.T[::self.windb_jump,::self.windb_jump]
+			vv=comp2.T[::self.windb_jump,::self.windb_jump]
+			# g.barbs( x , y , uu , vv ,length=windb_size)
+			Q=grid_ax.quiver(x,y,uu,vv, 
+								units='dots', 
+								scale=self.windv_scale, 
+								scale_units='dots',
+								width=self.windv_width)
+			qk=grid_ax.quiverkey(Q,0.8,0.08,10,r'$10 \frac{m}{s}$')
+			grid_ax.set_xlim(self.lon_left,self.lon_right)
+			grid_ax.set_ylim(self.lat_bot, self.lat_top)			
+
+		elif self.slice_type == 'vertical':
+
+			if self.sliceo[0] == 'zonal':
+				thisMask=self.maskLon
+				lons=self.lons[thisMask]
+				x=lons[::self.windb_jump]
+			elif self.sliceo[0] == 'meridional':
+				thisMask=self.maskLat
+				lats=self.lats[thisMask]
+				x=lats[::self.windb_jump]
+
+			zvalues=self.zvalues[self.zmask]
+			y=zvalues[::self.windb_jump]	
+
+			comp1=comp1[:,self.zmask]
+			hor= comp1.T[::self.windb_jump,::self.windb_jump]
+
+			comp2=comp2[:,self.zmask]
+			ver=comp2.T[::self.windb_jump,::self.windb_jump]
+			
+			print x/100
+			print y
+			print hor
+			print ver
+
+			Q=grid_ax.quiver(x/100.0,y,hor,ver, 
+								units='dots', 
+								scale=0.5, 
+								scale_units='dots',
+								width=self.windv_width)
+			qk=grid_ax.quiverkey(Q,0.8,0.08,10,r'$10 \frac{m}{s}$')
+			# grid_ax.set_xlim(self.lon_left,self.lon_right)
+			# grid_ax.set_ylim(self.lat_bot, self.lat_top)			
+
 
 	def set_flight_level(self,stdtape_obj):
 
@@ -158,13 +195,13 @@ class SynthPlot(object):
 			self.cmap_value=[-1,1]
 			self.cmap_name='jet'		
 
-	def get_slices(self,array,type_of_slice):
+	def get_slices(self,array):
 
-		if type_of_slice == 'horizontal':
+		if self.slice_type == 'horizontal':
 			slice_group , vertical_group = self.chop_horizontal(array)
 			return slice_group, vertical_group
 
-		elif type_of_slice == 'vertical':
+		elif self.slice_type == 'vertical':
 			slice_group , geo_group = self.chop_vertical (array)
 			return slice_group, geo_group
 
@@ -182,13 +219,14 @@ class SynthPlot(object):
 
 		return choped_array, vertical_levels
 
-	def chop_vertical(self):
+	def chop_vertical(self,array):
+
+		array=array[self.maskLon][:,self.maskLat]
+		lats=self.lats[self.maskLat]
+		lons=self.lons[self.maskLon]
 
 		nx,ny,nz=array.shape
 		space=10 #px
-
-		lats=self.lats[self.maskLat]
-		lons=self.lons[self.maskLon]
 
 		""" creates a vector rng with the range of 
 			indices idx to select from array.
@@ -203,6 +241,7 @@ class SynthPlot(object):
 			mid=np.round(ny/2)
 			idx.fill(mid)
 			slice_idx=[int(i+k) for (i,k) in zip(idx,rng)]
+			slice_idx.reverse() # slice from north to south
 			slices=[array[:,i,:] for i in slice_idx]
 			slice_lats=[lats[i] for i in slice_idx]
 			return slices,slice_lats
@@ -217,7 +256,6 @@ class SynthPlot(object):
 
 		# elif self.sliceo[0] == 'crossb':
 
-
 	def adjust_ticklabels(self,g):
 		
 		g.set_xlim(self.extent_vertical[0], self.extent_vertical[1])
@@ -230,8 +268,6 @@ class SynthPlot(object):
 		new_yticklabel[0]=' '
 		new_yticklabel[-1]=' '
 		g.set_yticklabels(new_yticklabel)		
-
-
 
 	def horizontal_plane(self , field_array ,**kwargs):
 
@@ -257,13 +293,14 @@ class SynthPlot(object):
 								cbar_location = "top",
 								cbar_mode="single")
 
-		array_group, level_group = self.get_slices(field_array,'horizontal')
-		ucomp, level_group = self.get_slices(u_array,'horizontal')
-		vcomp, level_group = self.get_slices(v_array,'horizontal')
+		self.slice_type='horizontal'
+		field_group, level_group = self.get_slices(field_array)
+		ucomp, level_group = self.get_slices(u_array)
+		vcomp, level_group = self.get_slices(v_array)
 
 
 		# creates iterator group
-		group=zip(plot_grids,array_group,level_group)
+		group=zip(plot_grids,field_group,level_group)
 
 		# make gridded plot
 		z=0
@@ -310,27 +347,12 @@ class SynthPlot(object):
 		plt.tight_layout()
 		plt.draw()
 
-	def vertical_plane(self,array,zlevel,**kwargs):
+	def vertical_plane(self,field_array,**kwargs):
 
-		ucomp=kwargs['ucomp']
-		vcomp=kwargs['vcomp']
-		wcomp=kwargs['vcomp']
-		
-		print type(array)
-		print type(ucomp)
-		print type(vcomp)
-		print type(wcomp)
-
-		# mask arrays
-		if self.zoomOpt:
-			self.zoom_in(self.zoomOpt[0])
-			array=array[self.maskLon][:,self.maskLat]
-			ucomp=ucomp[self.maskLon][:,self.maskLat]
-			vcomp=vcomp[self.maskLon][:,self.maskLat]
-			wcomp=wcomp[self.maskLon][:,self.maskLat]
-		else:
-			print "Vertical slice only available with zoom option.\n"
-			sys.exit()
+		u_array=kwargs['ucomp']
+		v_array=kwargs['vcomp']
+		w_array=kwargs['wcomp']
+		self.zvalues=kwargs['zlevels']
 
 		self.set_panel('vertical')
 		self.set_colormap(self.var)
@@ -347,11 +369,11 @@ class SynthPlot(object):
 								cbar_mode="single",
 								aspect=True)
 
-
-		field_group , slice_geo = self.get_slices(array)
-		uComp , slice_geo = self.get_slices(ucomp)
-		vComp , slice_geo = self.get_slices(vcomp)
-		verticalComp , slice_geo = self.get_slices(wcomp)
+		self.slice_type='vertical'
+		field_group , slice_geo = self.get_slices(field_array)
+		uComp , slice_geo = self.get_slices(u_array)
+		vComp , slice_geo = self.get_slices(v_array)
+		verticalComp , slice_geo = self.get_slices(w_array)
 
 
 		self.minz=0.25
@@ -359,7 +381,7 @@ class SynthPlot(object):
 		# scale=maxz*3
 		self.scale=10
 
-		zmask= np.logical_and(zlevel >= self.minz, zlevel <= self.maxz)
+		self.zmask= np.logical_and(self.zvalues >= self.minz, self.zvalues <= self.maxz)
 
 		if self.sliceo[0] == 'zonal':
 			self.extent_vertical=[self.lon_left*self.scale,
@@ -367,6 +389,7 @@ class SynthPlot(object):
 									self.minz,
 									self.maxz ]
 			horizontalComp=uComp
+
 		elif self.sliceo[0] == 'meridional':
 			self.extent_vertical=[self.lat_bot*self.scale,
 									self.lat_top*self.scale,
@@ -384,7 +407,7 @@ class SynthPlot(object):
 		p=0
 		for g,field,h_comp,w_comp in group:
 
-			field=field[:,zmask]
+			field=field[: ,self.zmask]
 			im = g.imshow(field.T,
 							interpolation='none',
 							origin='lower',
@@ -409,7 +432,9 @@ class SynthPlot(object):
 					verticalalignment='center',
 					transform=g.transAxes)
 
-			self.add_windvector(g,h_comp[p],w_comp[p])
+			# print h_comp.shape
+			# print w_comp.shape
+			self.add_windvector(g,h_comp,w_comp)
 			p+=1
 
 		 # add color bar

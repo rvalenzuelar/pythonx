@@ -131,8 +131,9 @@ def plot_synth(S,F,**kwargs):
 	""" make horizontal plane plot """
 	P.horizontal_plane(array,zlevels=S.Z,ucomp=U,vcomp=V)
 
-	""" slices only available with zoomin option """
-	# P.vertical_plane(array,S.Z,ucomp=Uarray,vcomp=Varray,wcomp=Warray)
+	""" make vertical plane plots """
+	if P.slicen and P.sliceo:
+		P.vertical_plane(array,zlevels=S.Z,ucomp=U,vcomp=V,wcomp=W)
 
 
 
