@@ -10,6 +10,7 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
+import scipy.ndimage
 
 class SynthPlot(object):
 
@@ -51,7 +52,6 @@ class SynthPlot(object):
 		self.lons=synth_obj.LON 
 		self.lon_left=min(synth_obj.LON)
 		self.lon_right=max(synth_obj.LON)
-
 
 	def set_coastline(self):
 
@@ -104,10 +104,103 @@ class SynthPlot(object):
 		self.flight_lat=fp[0]
 		self.flight_lon=fp[1]
 
+	def set_panel(self,option):
+
+		# set some plotting values and stores
+		# vertical level in a list of arrays
+		if option == 'single':
+			self.figure_size=(8,8)
+			self.rows_cols=(1,1)
+			self.windb_size=6.5
+			self.windb_jump=2
+			self.ztext_size=12
+			self.windv_scale=0.5
+			self.windv_width=2
+
+		elif option == 'multi':
+			self.figure_size=(8,12)
+			self.rows_cols=(3,2)
+			self.windb_size=5
+			self.windb_jump=5
+			self.ztext_size=10
+			self.windv_scale=0.5
+			self.windv_width=2
+
+		elif option == 'vertical':
+			self.figure_size=(8,10)
+			self.rows_cols=(3,1)
+			self.windb_size=5
+			self.windb_jump=5
+			self.ztext_size=10
+			self.windv_scale=0.5
+			self.windv_width=2
+
+	def set_colormap(self,field):
+
+		# define colormap range
+		if field == 'DBZ':
+			self.cmap_value=[-15,45]
+			self.cmap_name='jet'
+		elif field in ['U','V']:
+			self.cmap_value=[-5,15]
+			self.cmap_name='jet'
+		elif field == 'SPD':
+			self.cmap_value=[5,15]
+			self.cmap_name='YlGnBu_r'
+		else:
+			self.cmap_value=[-1,1]
+			self.cmap_name='jet'		
+
+	def get_slices(self,array):
+
+		print array.shape
+		# print self.slicen
+		# print self.sliceo
+		# print self.lats.shape
+		# print self.lons.shape
+		# newlats=self.lats[self.maskLat]
+		# newlons=self.lons[self.maskLon]
+		# print newlats.shape
+		# print newlons.shape
+
+		nx,ny,nz=array.shape
+		space=10 #px
+
+		idx=np.empty(self.slicen[0],dtype=int)
+		
+		weight=(self.slicen[0]-1)/2.0
+		rng=np.arange(-(space*weight),(space*weight)+1,space)
+
+
+		if self.sliceo[0] == 'zonal':
+			mid=np.round(ny/2)
+			idx.fill(mid)
+
+			slice_idx=[int(i+k) for (i,k) in zip(idx,rng)]
+
+			slices=[array[:,i,:] for i in slice_idx]
+
+			print slices[0].shape
+		# elif self.sliceo == 'meridional':
+
+		# elif self.sliceo == 'crossb':
+
+
+
+
+
+
 	def horizontal_plane(self , array_group , level_group,**kwargs):
 
 		ucomp=kwargs['ucomp']
 		vcomp=kwargs['vcomp']
+
+		if self.panel:
+			self.set_panel('single')
+		else:
+			self.set_panel('multi')
+
+		self.set_colormap(self.var)
 
 		fig = plt.figure(figsize=(self.figure_size))
 
@@ -167,20 +260,33 @@ class SynthPlot(object):
 		plt.tight_layout()
 		plt.draw()
 
-	def vertical_plane(self):
-		print "coming soon\n"
+	def vertical_plane(self,array):
+		
+		if self.zoomOpt:
+			self.zoom_in(self.zoomOpt[0])
+			array=array[self.maskLon][:,self.maskLat]
+		else:
+			print "Vertical slice only available with zoom option.\n"
+			sys.exit()
 
-		# if slicen:
-		# 	# add figure
-		# 	fig = plt.figure(figsize=(8,10))
+		self.set_panel('vertical')
+		self.set_colormap(self.var)
 
-		# 	plot_grids=ImageGrid( fig,111,
-		# 							nrows_ncols = (3,1),
-		# 							axes_pad = 0.0,
-		# 							add_all = True,
-		# 							share_all=False,
-		# 							label_mode = "L",
-		# 							cbar_location = "top",
-		# 							cbar_mode="single")
+		fig = plt.figure(figsize=(self.figure_size))
 
+		plot_grids=ImageGrid( fig,111,
+								nrows_ncols = self.rows_cols,
+								axes_pad = 0.0,
+								add_all = True,
+								share_all=False,
+								label_mode = "L",
+								cbar_location = "top",
+								cbar_mode="single")
+
+
+		ss = self.get_slices(array)
+
+		# show figure
+		plt.tight_layout()
+		plt.draw()
 
