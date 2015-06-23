@@ -82,9 +82,12 @@ class Synthesis(object):
 		self.WUP = self.read_synth('WUPF2')
 		self.WVA = self.read_synth('WVARF2')
 		self.VOR = self.read_synth('VORT2')
-		self.CONV = self.read_synth('CONM2')
+		self.CON = self.read_synth('CONM2')
 		self.DBZ = self.read_synth('MAXDZ')
-		self.SPD = self.get_windspd()
+		self.SPD = self.get_TotalWindSpeed(self.WVA)
+		self.SPH = self.get_HorizontalWindSpeed()
+		self.SPM = self.get_MeridionalWindSpeed(self.WVA)
+		self.SPZ = self.get_ZonalWindSpeed(self.WVA)
 		self.LAT = self.set_geoGrid('latitude')
 		self.LON = self.set_geoGrid('longitude')
 		self.start = self.read_time('start')
@@ -215,8 +218,20 @@ class Synthesis(object):
 		else:
 			print "Error in geo_axis name"
 			exit()
-			
-	def get_windspd(self):
 
-		return np.sqrt(self.U**2+self.V**2+self.WVA**2)
+	def get_TotalWindSpeed(self,W):
+
+		return np.sqrt(self.U**2+self.V**2+W**2)
+			
+	def get_HorizontalWindSpeed(self):
+
+		return np.sqrt(self.U**2+self.V**2)
+
+	def get_MeridionalWindSpeed(self,W):
+
+		return np.sqrt(self.V**2+W**2)
+
+	def get_ZonalWindSpeed(self,W):
+
+		return np.sqrt(self.U**2+W**2)
 

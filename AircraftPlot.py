@@ -91,12 +91,20 @@ class SynthPlot(object):
 
 	def add_windvector(self,grid_ax,comp1,comp2):
 
+
 		if self.slice_type == 'horizontal':
-			x=self.lons[::self.windb_jump]
-			y=self.lats[::self.windb_jump]	
-			uu= comp1.T[::self.windb_jump,::self.windb_jump]
-			vv=comp2.T[::self.windb_jump,::self.windb_jump]
-			# g.barbs( x , y , uu , vv ,length=windb_size)
+			xjump=self.windb_jump
+			yjump=self.windb_jump
+
+			lons=self.shrink(self.lons,mask=self.maskLon)
+			x=self.resample(lons,res=xjump)
+
+			lats=self.shrink(self.lats,mask=self.maskLat)
+			y=self.resample(lats,res=yjump)
+
+			uu=self.resample(comp1.T,xres=xjump,yres=yjump)
+			vv=self.resample(comp2.T,xres=xjump,yres=yjump)
+
 			Q=grid_ax.quiver(x,y,uu,vv, 
 								units='dots', 
 								scale=self.windv_scale, 
@@ -108,39 +116,28 @@ class SynthPlot(object):
 
 		elif self.slice_type == 'vertical':
 
-			if self.sliceo[0] == 'zonal':
-				thisMask=self.maskLon
-				lons=self.lons[thisMask]
-				x=lons[::self.windb_jump]
-			elif self.sliceo[0] == 'meridional':
-				thisMask=self.maskLat
-				lats=self.lats[thisMask]
-				x=lats[::self.windb_jump]
+			if self.sliceo == 'zonal':
+				lons=self.shrink(self.lons,mask=self.maskLon)
+				x=self.resample(lons,res=2)
+			elif self.sliceo == 'meridional':
+				lats=self.shrink(self.lats,mask=self.maskLat)
+				x=self.resample(lats,res=2)
 
-			zvalues=self.zvalues[self.zmask]
-			y=zvalues[::self.windb_jump]	
+			zvalues=self.shrink(self.zvalues,mask=self.zmask)
+			y=self.resample(zvalues,res=2)
 
-			comp1=comp1[:,self.zmask]
-			hor= comp1.T[::self.windb_jump,::self.windb_jump]
+			hor= self.resample(comp1.T,xres=2,yres=2)
+			ver= self.resample(comp2.T,xres=2,yres=2)
 
-			comp2=comp2[:,self.zmask]
-			ver=comp2.T[::self.windb_jump,::self.windb_jump]
-			
-			print x/100
-			print y
-			print hor
-			print ver
-
-			Q=grid_ax.quiver(x/100.0,y,hor,ver, 
+			Q=grid_ax.quiver(x*self.scale,y, hor, ver,
 								units='dots', 
 								scale=0.5, 
 								scale_units='dots',
-								width=self.windv_width)
-			qk=grid_ax.quiverkey(Q,0.8,0.08,10,r'$10 \frac{m}{s}$')
-			# grid_ax.set_xlim(self.lon_left,self.lon_right)
-			# grid_ax.set_ylim(self.lat_bot, self.lat_top)			
-
-
+								width=1.5)
+			qk=grid_ax.quiverkey(Q,0.95,0.8,10,r'$10 \frac{m}{s}$')
+			grid_ax.set_xlim(self.extent_vertical[0],self.extent_vertical[1])
+			grid_ax.set_ylim(self.extent_vertical[2], self.extent_vertical[3])			
+	
 	def set_flight_level(self,stdtape_obj):
 
 		jmp=5
@@ -188,12 +185,41 @@ class SynthPlot(object):
 		elif field in ['U','V']:
 			self.cmap_value=[-5,15]
 			self.cmap_name='jet'
-		elif field == 'SPD':
-			self.cmap_value=[5,20]
-			self.cmap_name='nipy_spectral'
+		elif field in ['SPH','SPD']:
+			if self.slice_type == 'horizontal':
+				self.cmap_value=[5,20]
+				self.cmap_name='Accent'
+			else:
+				self.cmap_value=[0,15]
+				self.cmap_name='Accent'			
 		else:
 			self.cmap_value=[-1,1]
 			self.cmap_name='jet'		
+
+	def shrink(self,array, **kwargs):
+
+		if len(kwargs)==1:
+			array=array[kwargs['mask']]
+
+		elif len(kwargs)==2:
+			MaskDimX=kwargs['xmask']
+			MaskDimY=kwargs['ymask']			
+			array=array[MaskDimX][:,MaskDimY]
+
+		return array
+
+	def resample(self,array,**kwargs):
+
+		if len(kwargs)==1:
+			array=array[::kwargs['res']]
+
+		elif len(kwargs)==2:
+			xjump=kwargs['xres']
+			yjump=kwargs['yres']						
+			array= array[::xjump,::yjump]
+		return array
+
+			
 
 	def get_slices(self,array):
 
@@ -216,14 +242,16 @@ class SynthPlot(object):
 			choped_array = [array[:,:,i+1] for i in range(6)]
 			vertical_levels = [self.zvalues[i+1] for i in range(6)]
 			
-
 		return choped_array, vertical_levels
 
 	def chop_vertical(self,array):
 
-		array=array[self.maskLon][:,self.maskLat]
-		lats=self.lats[self.maskLat]
-		lons=self.lons[self.maskLon]
+		# array=array[self.maskLon][:,self.maskLat]
+		# lats=self.lats[self.maskLat]
+		# lons=self.lons[self.maskLon]
+
+		lats=self.lats
+		lons=self.lons
 
 		nx,ny,nz=array.shape
 		space=10 #px
@@ -237,7 +265,7 @@ class SynthPlot(object):
 
 		""" return a list of slices
 		"""
-		if self.sliceo[0] == 'zonal':
+		if self.sliceo == 'zonal':
 			mid=np.round(ny/2)
 			idx.fill(mid)
 			slice_idx=[int(i+k) for (i,k) in zip(idx,rng)]
@@ -246,7 +274,7 @@ class SynthPlot(object):
 			slice_lats=[lats[i] for i in slice_idx]
 			return slices,slice_lats
 
-		elif self.sliceo[0] == 'meridional':
+		elif self.sliceo == 'meridional':
 			mid=np.round(nx/2)
 			idx.fill(mid)
 			slice_idx=[int(i+k) for (i,k) in zip(idx,rng)]
@@ -254,7 +282,7 @@ class SynthPlot(object):
 			slice_lons=[lons[i] for i in slice_idx]
 			return slices,slice_lons
 
-		# elif self.sliceo[0] == 'crossb':
+		# elif self.sliceo == 'crossb':
 
 	def adjust_ticklabels(self,g):
 		
@@ -269,6 +297,15 @@ class SynthPlot(object):
 		new_yticklabel[-1]=' '
 		g.set_yticklabels(new_yticklabel)		
 
+	def add_slice_line(self,axis,array):
+
+		print self.sliceo
+		foo,slice_coord=self.chop_vertical(array)
+
+		print slice_coord
+
+
+
 	def horizontal_plane(self , field_array ,**kwargs):
 
 		u_array=kwargs['ucomp']
@@ -280,6 +317,7 @@ class SynthPlot(object):
 		else:
 			self.set_panel('multi')
 
+		self.slice_type='horizontal'
 		self.set_colormap(self.var)
 
 		fig = plt.figure(figsize=(self.figure_size))
@@ -293,25 +331,29 @@ class SynthPlot(object):
 								cbar_location = "top",
 								cbar_mode="single")
 
-		self.slice_type='horizontal'
+		if self.zoomOpt:
+			self.zoom_in(self.zoomOpt[0])
+			field_array=self.shrink(field_array,xmask=self.maskLon,ymask=self.maskLat)
+			u_array=self.shrink(u_array,xmask=self.maskLon,ymask=self.maskLat)
+			v_array=self.shrink(v_array,xmask=self.maskLon,ymask=self.maskLat)
+
 		field_group, level_group = self.get_slices(field_array)
 		ucomp, level_group = self.get_slices(u_array)
 		vcomp, level_group = self.get_slices(v_array)
 
-
 		# creates iterator group
-		group=zip(plot_grids,field_group,level_group)
+		group=zip(plot_grids,level_group,field_group,ucomp,vcomp)
 
 		# make gridded plot
-		z=0
-		for g,field,k in group:
+		for g,k,field,u,v in group:
 
 			g.plot(self.loncoast, self.latcoast, color='b')
-			g.plot(self.flight_lon, self.flight_lat)
-			
-			if self.zoomOpt:
-				self.zoom_in(self.zoomOpt[0])
-				field=field[self.maskLon][:,self.maskLat]
+			g.plot(self.flight_lon, self.flight_lat)		
+
+
+			# if self.var == 'SPH':
+			# 	u.mask=field.mask
+			# 	v.mask=field.mask
 			
 			im = g.imshow(field.T,
 							interpolation='none',
@@ -323,6 +365,15 @@ class SynthPlot(object):
 							vmin=self.cmap_value[0],
 							vmax=self.cmap_value[1],
 							cmap=self.cmap_name)
+
+			# self.add_windvector(g,u,v)
+
+			# self.slice_type='vertical'
+			# foo , slice_geo = self.get_slices(field)
+
+			# print slice_geo
+			# self.add_slice_line(g,field)
+
 			g.grid(True)
 			ztext='MSL='+str(k)+'km'
 			g.text(	0.1, 0.08,
@@ -332,16 +383,9 @@ class SynthPlot(object):
 					verticalalignment='center',
 					transform=g.transAxes)
 
-			self.add_windvector(g,ucomp[z],vcomp[z])
-			z+=1
-
 		 # add color bar
 		plot_grids.cbar_axes[0].colorbar(im)
-		var_title={	'DBZ': 'Reflectivity factor [dBZ]',
-					'SPD': 'Wind speed [m/s]',
-					'VOR': 'Vorticity',
-					'CONV': 'Convergence'}
-		fig.suptitle(' Dual-Doppler Synthesis: '+var_title[self.var] )
+		fig.suptitle(' Dual-Doppler Synthesis: '+ self.get_var_title(self.var) )
 
 		# show figure
 		plt.tight_layout()
@@ -354,7 +398,8 @@ class SynthPlot(object):
 		w_array=kwargs['wcomp']
 		self.zvalues=kwargs['zlevels']
 
-		self.set_panel('vertical')
+		self.slice_type='vertical'
+		self.set_panel(self.slice_type)
 		self.set_colormap(self.var)
 
 		fig = plt.figure(figsize=(self.figure_size))
@@ -368,8 +413,14 @@ class SynthPlot(object):
 								cbar_location = "top",
 								cbar_mode="single",
 								aspect=True)
+	
 
-		self.slice_type='vertical'
+
+		field_array=self.shrink(field_array,xmask=self.maskLon,ymask=self.maskLat)
+		u_array=self.shrink(u_array,xmask=self.maskLon,ymask=self.maskLat)
+		v_array=self.shrink(v_array,xmask=self.maskLon,ymask=self.maskLat)
+		w_array=self.shrink(w_array,xmask=self.maskLon,ymask=self.maskLat)
+
 		field_group , slice_geo = self.get_slices(field_array)
 		uComp , slice_geo = self.get_slices(u_array)
 		vComp , slice_geo = self.get_slices(v_array)
@@ -378,19 +429,17 @@ class SynthPlot(object):
 
 		self.minz=0.25
 		self.maxz=5.0
-		# scale=maxz*3
-		self.scale=10
-
 		self.zmask= np.logical_and(self.zvalues >= self.minz, self.zvalues <= self.maxz)
 
-		if self.sliceo[0] == 'zonal':
+		self.scale=10
+		if self.sliceo == 'zonal':
 			self.extent_vertical=[self.lon_left*self.scale,
 									self.lon_right*self.scale,
 									self.minz,
 									self.maxz ]
 			horizontalComp=uComp
 
-		elif self.sliceo[0] == 'meridional':
+		elif self.sliceo == 'meridional':
 			self.extent_vertical=[self.lat_bot*self.scale,
 									self.lat_top*self.scale,
 									self.minz,
@@ -407,7 +456,13 @@ class SynthPlot(object):
 		p=0
 		for g,field,h_comp,w_comp in group:
 
+			if self.var in ['SPD','SPH']:
+				field.mask=w_comp.mask
+
 			field=field[: ,self.zmask]
+			h_comp=h_comp[: ,self.zmask]
+			w_comp=w_comp[: ,self.zmask]
+
 			im = g.imshow(field.T,
 							interpolation='none',
 							origin='lower',
@@ -415,6 +470,8 @@ class SynthPlot(object):
 							vmin=self.cmap_value[0],
 							vmax=self.cmap_value[1],
 							cmap=self.cmap_name)
+			# self.add_windvector(g,h_comp,w_comp)
+
 			g.grid(True)
 
 			self.adjust_ticklabels(g)
@@ -431,22 +488,44 @@ class SynthPlot(object):
 					horizontalalignment='left',
 					verticalalignment='center',
 					transform=g.transAxes)
-
-			# print h_comp.shape
-			# print w_comp.shape
-			self.add_windvector(g,h_comp,w_comp)
 			p+=1
+
+			# print "field", field.T[:,50]
+			# print "hcomp", h_comp.T[:,50]
+			# print "wcomp", w_comp.T[:,50]
+			# print "-----------------------"
+			# print "sqrt", np.sqrt(h_comp.T[:,50]**2+w_comp.T[:,50]**2)
+
+			# im = g.imshow(field.T,
+			# 	interpolation='none',
+			# 	origin='lower',
+			# 	# extent=self.extent_vertical,
+			# 	vmin=self.cmap_value[0],
+			# 	vmax=self.cmap_value[1],
+			# 	cmap=self.cmap_name)
 
 		 # add color bar
 		plot_grids.cbar_axes[0].colorbar(im)
-		var_title={	'DBZ': 'Reflectivity factor [dBZ]',
-					'SPD': 'Wind speed [m/s]',
-					'VOR': 'Vorticity',
-					'CONV': 'Convergence'}
-		fig.suptitle(' Dual-Doppler Synthesis: '+var_title[self.var] )
+		fig.suptitle(' Dual-Doppler Synthesis: '+self.get_var_title(self.var) )
 
 		# show figure
 		# plt.tight_layout()
 		plt.draw()
+		
 
+	def get_var_title(self,var):
+		var_title={	'DBZ': 'Reflectivity factor [dBZ]',
+					'SPD': 'Total wind speed [m/s]',
+					'SPH': 'Horizontal wind speed [m/s]',
+					'VOR': 'Vorticity',
+					'CONV': 'Convergence',
+					'U': 'wind u-component [m/s]',
+					'V': 'wind v-component [m/s]'}
+		title=var_title[var]
+		
+		if self.slice_type == 'vertical' and self.sliceo == 'zonal':
+			title = title.replace("Horizontal ","Zonal ")
+		elif self.slice_type == 'vertical' and self.sliceo  == 'meridional':
+			title = title.replace('Horizontal','Meridional')
 
+		return title

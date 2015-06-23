@@ -89,13 +89,13 @@ def main( args ):
 					windb=True,
 					panel=panelNum,
 					sliceN=sliceNum,
-					sliceO=sliceOrient,
+					sliceO=sliceOrient[0],
 					zoomIn=zoomOpt)
 
 	plt.show()	
 
 
-def plot_synth(S,F,**kwargs):
+def plot_synth(S , F, **kwargs):
 
 	# creates synthesis plot instance
 	P=ap.SynthPlot()
@@ -108,14 +108,15 @@ def plot_synth(S,F,**kwargs):
 	P.sliceo=kwargs['sliceO']
 	P.zoomOpt=kwargs['zoomIn']
 
+	if P.var == 'SPD':
+		P.var = 'SPH' # horizontal proyection
+
 	# get array
-	if P.var=='CON': 
-		P.var='CONV'
-	array=getattr(S,P.var)
-	zlevel=getattr(S,'Z')
-	U=getattr(S,'U')		
-	V=getattr(S,'V')	
-	W=getattr(S,'WVA')	
+	array=getattr(S , P.var)
+	zlevel=getattr(S , 'Z')
+	U=getattr(S , 'U')		
+	V=getattr(S , 'V')	
+	W=getattr(S , 'WVA')	
 	# W=getattr(S,'WUP')
 
 	
@@ -130,11 +131,19 @@ def plot_synth(S,F,**kwargs):
 
 	""" make horizontal plane plot """
 	P.horizontal_plane(array,zlevels=S.Z,ucomp=U,vcomp=V)
+	
 
 	""" make vertical plane plots """
 	if P.slicen and P.sliceo:
-		P.vertical_plane(array,zlevels=S.Z,ucomp=U,vcomp=V,wcomp=W)
-
+		if P.var == 'SPH' and P.sliceo == 'zonal':
+			P.vertical_plane(getattr(S , 'SPZ'),zlevels=S.Z,ucomp=U,vcomp=V,wcomp=W)
+		elif P.var == 'SPH' and P.sliceo == 'meridional':
+			P.vertical_plane(getattr(S , 'SPM'),zlevels=S.Z,ucomp=U,vcomp=V,wcomp=W)
+		else:
+			P.vertical_plane(array,zlevels=S.Z,ucomp=U,vcomp=V,wcomp=W)
+		
+	
+		
 
 
 
@@ -179,7 +188,7 @@ if __name__ == "__main__":
 	group_fields.add_argument('--field', '-f',
 							metavar='str',
 							nargs='+',
-							choices=['DBZ','SPD','CON','VOR'],
+							choices=['DBZ','SPD','CON','VOR','U','V'],
 							default=['DBZ','SPD','CON','VOR'],
 							help="specify radar field(s) to be plotted")	
 
