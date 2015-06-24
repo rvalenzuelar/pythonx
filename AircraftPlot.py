@@ -325,6 +325,27 @@ class SynthPlot(object):
 					print x0,x1,y0,y1
 					axis.plot([x0,x1],[y0,y1],'ro-')
 
+	def get_var_title(self,var):
+		var_title={	'DBZ': 'Reflectivity factor [dBZ]',
+					'SPD': 'Total wind speed [m/s]',
+					'SPH': 'Horizontal wind speed [m/s]',
+					'VOR': 'Vorticity',
+					'CONV': 'Convergence',
+					'U': 'wind u-component [m/s]',
+					'V': 'wind v-component [m/s]'}
+		title=var_title[var]
+		
+		if self.slice_type == 'vertical' and self.sliceo == 'zonal':
+			title = title.replace("Horizontal ","Zonal ")
+		elif self.slice_type == 'vertical' and self.sliceo  == 'meridional':
+			title = title.replace('Horizontal','Meridional')
+
+		return title
+
+	def all_same(self,array):
+		b= all(x == array[0] for x in array)
+		return b
+
 	def horizontal_plane(self ,**kwargs):
 
 		field_array=kwargs['field']
@@ -333,7 +354,8 @@ class SynthPlot(object):
 		w_array=kwargs['wcomp']
 		self.zvalues=kwargs['zlevels']
 
-		field_array.mask=w_array.mask
+		if self.var == 'SPH':
+			field_array.mask=w_array.mask
 
 		if self.panel:
 			self.set_panel('single')
@@ -514,20 +536,6 @@ class SynthPlot(object):
 					transform=g.transAxes)
 			p+=1
 
-			# print "field", field.T[:,50]
-			# print "hcomp", h_comp.T[:,50]
-			# print "wcomp", w_comp.T[:,50]
-			# print "-----------------------"
-			# print "sqrt", np.sqrt(h_comp.T[:,50]**2+w_comp.T[:,50]**2)
-
-			# im = g.imshow(field.T,
-			# 	interpolation='none',
-			# 	origin='lower',
-			# 	# extent=self.extent_vertical,
-			# 	vmin=self.cmap_value[0],
-			# 	vmax=self.cmap_value[1],
-			# 	cmap=self.cmap_name)
-
 		 # add color bar
 		plot_grids.cbar_axes[0].colorbar(im)
 		fig.suptitle(' Dual-Doppler Synthesis: '+self.get_var_title(self.var) )
@@ -537,22 +545,3 @@ class SynthPlot(object):
 		plt.draw()
 		
 
-	def get_var_title(self,var):
-		var_title={	'DBZ': 'Reflectivity factor [dBZ]',
-					'SPD': 'Total wind speed [m/s]',
-					'SPH': 'Horizontal wind speed [m/s]',
-					'VOR': 'Vorticity',
-					'CONV': 'Convergence',
-					'U': 'wind u-component [m/s]',
-					'V': 'wind v-component [m/s]'}
-		title=var_title[var]
-		
-		if self.slice_type == 'vertical' and self.sliceo == 'zonal':
-			title = title.replace("Horizontal ","Zonal ")
-		elif self.slice_type == 'vertical' and self.sliceo  == 'meridional':
-			title = title.replace('Horizontal','Meridional')
-
-		return title
-
-	def all_same(self,array):
-		return all(x == array[0] for x in array)
