@@ -103,20 +103,28 @@ def plot_synth(S , F, **kwargs):
 	P.windb=kwargs['windb']
 	P.panel=kwargs['panel']
 	P.zoomOpt=kwargs['zoomIn']
-	# P.slice=kwargs['sliceCoords']
-	P.slice=sorted(kwargs['sliceCoords'],reverse=True)
+	try:
+		P.slice=sorted(kwargs['sliceCoords'],reverse=True)
+	except TypeError:
+		P.slice=None
+
 
 	# get array
 	if P.var == 'SPD':
 		P.var = 'SPH' # horizontal proyection
 	array=getattr(S , P.var)		
-	zlevel=getattr(S , 'Z')
-	U=getattr(S , 'U')		
-	V=getattr(S , 'V')	
-	W=getattr(S , 'WVA')	
+	# zlevel=getattr(S , 'Z')
+	# U=getattr(S , 'U')		
+	# V=getattr(S , 'V')	
+	# W=getattr(S , 'WVA')	
 	# W=getattr(S,'WUP')
 
-	
+	""" set common variables """
+	P.zvalues=S.Z
+	P.u_array=S.U
+	P.v_array=S.V
+	P.w_array=S.WVA
+
 	""" general  geographic domain boundaries """
 	P.set_geographic(S)
 
@@ -127,23 +135,29 @@ def plot_synth(S , F, **kwargs):
 	P.set_coastline()
 
 	""" make horizontal plane plot """
-	P.horizontal_plane(field=array,zlevels=S.Z,ucomp=U,vcomp=V,wcomp=W)
+	P.horizontal_plane(field=array)
 	
 
 	""" make vertical plane plots """
+	# if P.slice:
+	# 	if P.var == 'SPH' :
+	# 		if all(i>90 for i in P.slice):
+	# 			P.vertical_plane(field=getattr(S , 'SPM'),zlevels=S.Z,ucomp=U,vcomp=V,wcomp=W)
+	# 		elif all(i<90 for i in P.slice):		
+	# 			P.vertical_plane(field=getattr(S , 'SPZ'),zlevels=S.Z,ucomp=U,vcomp=V,wcomp=W)
+	# 		else:
+	# 			print "all coordinates in lat or lon"
+	# 			exit()
+	# 	else:
+	# 		P.vertical_plane(field=array,zlevels=S.Z,ucomp=U,vcomp=V,wcomp=W)
+		
 	if P.slice:
 		if P.var == 'SPH' :
-			if all(i>90 for i in P.slice):
-				P.vertical_plane(field=getattr(S , 'SPM'),zlevels=S.Z,ucomp=U,vcomp=V,wcomp=W)
-			elif all(i<90 for i in P.slice):		
-				P.vertical_plane(field=getattr(S , 'SPZ'),zlevels=S.Z,ucomp=U,vcomp=V,wcomp=W)
-			else:
-				print "all coordinates in lat or lon"
-				exit()
+			P.vertical_plane_velocity(	fieldH=S.SPH, #horizontal component
+										fieldM=S.SPM, # meridional component
+										fieldZ=S.SPZ) # zonal component)
 		else:
-			P.vertical_plane(field=array,zlevels=S.Z,ucomp=U,vcomp=V,wcomp=W)
-		
-	
+			P.vertical_plane(field=array)	
 		
 
 

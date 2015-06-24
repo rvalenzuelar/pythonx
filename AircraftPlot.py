@@ -51,6 +51,9 @@ class SynthPlot(object):
 		self.zvalues=[]
 		self.zlevels=[]
 		self.slice_type=None
+		self.u_array=[]
+		self.v_array=[]
+		self.w_array=[]
 
 	def set_geographic(self,synth_obj):
 
@@ -89,53 +92,6 @@ class SynthPlot(object):
 			self.lon_right=-122.9	
 		self.maskLat= np.logical_and(self.lats >= self.lat_bot, self.lats <= self.lat_top)
 		self.maskLon= np.logical_and(self.lons >= self.lon_left, self.lons <= self.lon_right)
-
-	def add_windvector(self,grid_ax,comp1,comp2):
-
-
-		if self.slice_type == 'horizontal':
-			xjump=self.windb_jump
-			yjump=self.windb_jump
-
-			lons=self.shrink(self.lons,mask=self.maskLon)
-			x=self.resample(lons,res=xjump)
-
-			lats=self.shrink(self.lats,mask=self.maskLat)
-			y=self.resample(lats,res=yjump)
-
-			uu=self.resample(comp1.T,xres=xjump,yres=yjump)
-			vv=self.resample(comp2.T,xres=xjump,yres=yjump)
-
-			Q=grid_ax.quiver(x,y,uu,vv, 
-								units='dots', 
-								scale=self.windv_scale, 
-								scale_units='dots',
-								width=self.windv_width)
-			qk=grid_ax.quiverkey(Q,0.8,0.08,10,r'$10 \frac{m}{s}$')
-			grid_ax.set_xlim(self.lon_left,self.lon_right)
-			grid_ax.set_ylim(self.lat_bot, self.lat_top)			
-
-		elif self.slice_type == 'vertical':
-
-			if self.sliceo == 'zonal':
-				lons=self.shrink(self.lons,mask=self.maskLon)
-				x=self.resample(lons,res=2)
-			elif self.sliceo == 'meridional':
-				lats=self.shrink(self.lats,mask=self.maskLat)
-				x=self.resample(lats,res=2)
-
-			zvalues=self.shrink(self.zvalues,mask=self.zmask)
-			y=self.resample(zvalues,res=2)
-
-			hor= self.resample(comp1.T,xres=2,yres=2)
-			ver= self.resample(comp2.T,xres=2,yres=2)
-
-			Q=grid_ax.quiver(x*self.scale,y, hor, ver,
-								units='dots', 
-								scale=0.5, 
-								scale_units='dots',
-								width=1.5)
-			qk=grid_ax.quiverkey(Q,0.95,0.8,10,r'$10 \frac{m}{s}$')
 		
 	def set_flight_level(self,stdtape_obj):
 
@@ -167,8 +123,13 @@ class SynthPlot(object):
 			self.windv_width=2
 
 		elif option == 'vertical':
+			if self.var == 'SPH':
+				cols=2
+			else:
+				cols=1
+			rows=len(self.slice)
 			self.figure_size=(12,10)
-			self.rows_cols=(len(self.slice),1)
+			self.rows_cols=(rows,cols)
 			self.windb_size=5
 			self.windb_jump=5
 			self.geo_textsize=12
@@ -212,13 +173,15 @@ class SynthPlot(object):
 
 	def resample(self,array,**kwargs):
 
+
+
 		if len(kwargs)==1:
 			array=array[::kwargs['res']]
 
 		elif len(kwargs)==2:
+			yjump=kwargs['yres']
 			xjump=kwargs['xres']
-			yjump=kwargs['yres']						
-			array= array[::xjump,::yjump]
+			array= array[::yjump,::xjump]
 
 		return array
 
@@ -251,7 +214,6 @@ class SynthPlot(object):
 		lons=self.shrink(self.lons,mask=self.maskLon)
 
 		slices=[]
-		# coords=sorted(self.slice,reverse=True)
 		for coord in self.slice:
 			c=float(coord)
 			if c < 90.0:
@@ -346,16 +308,68 @@ class SynthPlot(object):
 		b= all(x == array[0] for x in array)
 		return b
 
+	def add_windvector(self,grid_ax,comp1,comp2):
+
+		if self.slice_type == 'horizontal':
+			xjump=self.windb_jump
+			yjump=self.windb_jump
+
+			lons=self.shrink(self.lons,mask=self.maskLon)
+			x=self.resample(lons,res=xjump)
+
+			lats=self.shrink(self.lats,mask=self.maskLat)
+			y=self.resample(lats,res=yjump)
+
+			uu=self.resample(comp1,xres=xjump,yres=yjump)
+			vv=self.resample(comp2,xres=xjump,yres=yjump)
+
+			Q=grid_ax.quiver(x,y,uu,vv, 
+								units='dots', 
+								scale=self.windv_scale, 
+								scale_units='dots',
+								width=self.windv_width)
+			qk=grid_ax.quiverkey(Q,0.8,0.08,10,r'$10 \frac{m}{s}$')
+			grid_ax.set_xlim(self.lon_left,self.lon_right)
+			grid_ax.set_ylim(self.lat_bot, self.lat_top)			
+
+		elif self.slice_type == 'vertical':
+
+			xjump=2
+			if all(i>90 for i in self.slice):
+				''' meridional '''
+				lats=self.shrink(self.lats,mask=self.maskLat)
+				x=self.resample(lats,res=xjump)
+			elif all(i<90 for i in self.slice):		
+				''' zonal '''
+				lons=self.shrink(self.lons,mask=self.maskLon)
+				x=self.resample(lons,res=xjump)
+
+			zvalues=self.shrink(self.zvalues,mask=self.zmask)
+			zjump=1
+			y=self.resample(zvalues,res=zjump)
+
+			hor= self.resample(comp1,xres=xjump,yres=zjump)
+			ver= self.resample(comp2,xres=xjump,yres=zjump)
+
+			Q=grid_ax.quiver(x*self.scale,y, hor, ver,
+								units='dots', 
+								scale=0.5, 
+								scale_units='dots',
+								width=1.5)
+			qk=grid_ax.quiverkey(Q,0.95,0.8,10,r'$10 \frac{m}{s}$')
+
 	def horizontal_plane(self ,**kwargs):
 
 		field_array=kwargs['field']
-		u_array=kwargs['ucomp']
-		v_array=kwargs['vcomp']
-		w_array=kwargs['wcomp']
-		self.zvalues=kwargs['zlevels']
+		u_array=self.u_array
+		v_array=self.v_array
+		w_array=self.w_array
 
 		if self.var == 'SPH':
 			field_array.mask=w_array.mask
+
+		u_array.mask=w_array.mask
+		v_array.mask=w_array.mask
 
 		if self.panel:
 			self.set_panel('single')
@@ -408,7 +422,7 @@ class SynthPlot(object):
 							vmax=self.cmap_value[1],
 							cmap=self.cmap_name)
 
-			# self.add_windvector(g,u,v)
+			self.add_windvector(g,u.T,v.T)
 
 			if self.slice:
 				self.add_slice_line(g)
@@ -439,10 +453,115 @@ class SynthPlot(object):
 	def vertical_plane(self,**kwargs):
 
 		field_array=kwargs['field']
-		u_array=kwargs['ucomp']
-		v_array=kwargs['vcomp']
-		w_array=kwargs['wcomp']
-		self.zvalues=kwargs['zlevels']
+		u_array=self.u_array
+		v_array=self.v_array
+		w_array=self.w_array
+
+		self.slice_type='vertical'
+		self.set_panel(self.slice_type)
+		self.set_colormap(self.var)
+
+		fig = plt.figure(figsize=(self.figure_size))
+
+		plot_grids=ImageGrid( fig,111,
+								nrows_ncols = self.rows_cols,
+								axes_pad = 0.0,
+								add_all = True,
+								share_all=False,
+								label_mode = "L",
+								cbar_location = "top",
+								cbar_mode="single",
+								aspect=True)
+
+		field_array=self.shrink(field_array,xmask=self.maskLon,ymask=self.maskLat)
+		u_array=self.shrink(u_array,xmask=self.maskLon,ymask=self.maskLat)
+		v_array=self.shrink(v_array,xmask=self.maskLon,ymask=self.maskLat)
+		w_array=self.shrink(w_array,xmask=self.maskLon,ymask=self.maskLat)
+
+		field_group = self.get_slices(field_array)
+		uComp  = self.get_slices(u_array)
+		vComp  = self.get_slices(v_array)
+		wComp  = self.get_slices(w_array)
+
+		self.minz=0.25
+		self.maxz=5.0
+		self.zmask= np.logical_and(self.zvalues >= self.minz, self.zvalues <= self.maxz)
+
+		self.scale=20
+		if all(i>90 for i in self.slice):
+			''' meridional '''
+			self.extent_vertical=[self.lat_bot*self.scale,
+									self.lat_top*self.scale,
+									self.minz,
+									self.maxz ]
+			horizontalComp=vComp
+			geo_axis='Lon: '
+		elif all(i<90 for i in self.slice):		
+			''' zonal '''
+			self.extent_vertical=[self.lon_left*self.scale,
+									self.lon_right*self.scale,
+									self.minz,
+									self.maxz ]
+			horizontalComp=uComp
+			geo_axis='Lat: '
+			
+
+		# creates iterator group
+		group=zip(plot_grids,
+					field_group,
+					horizontalComp,
+					wComp)
+
+		# make gridded plot
+		p=0
+		for g,field,h_comp,w_comp in group:
+
+			field=field[: ,self.zmask]
+			h_comp=h_comp[: ,self.zmask]
+			w_comp=w_comp[: ,self.zmask]
+
+			im = g.imshow(field.T,
+							interpolation='none',
+							origin='lower',
+							extent=self.extent_vertical,
+							vmin=self.cmap_value[0],
+							vmax=self.cmap_value[1],
+							cmap=self.cmap_name)
+
+			self.add_windvector(g,h_comp.T,w_comp.T)
+			self.add_slice_line(g)
+
+			g.grid(True, which = 'major',linewidth=1)
+			g.grid(True, which = 'minor',alpha=0.5)
+			g.minorticks_on()
+
+			self.adjust_ticklabels(g)
+
+			geotext=geo_axis+str(self.slice[p])
+			g.text(	0.03, 0.9,
+					geotext,
+					fontsize=self.zlevel_textsize,
+					horizontalalignment='left',
+					verticalalignment='center',
+					transform=g.transAxes)
+			p+=1
+
+		 # add color bar
+		plot_grids.cbar_axes[0].colorbar(im)
+		fig.suptitle(' Dual-Doppler Synthesis: '+self.get_var_title(self.var) )
+
+		# show figure
+		plt.draw()
+	
+	def vertical_plane_velocity(self,**kwargs):
+
+		field_array=kwargs['field']
+		u_array=self.u_array
+		v_array=self.v_array
+		w_array=self.w_array
+
+		if self.var == 'SPH':
+			field_array.mask=w_array.mask
 
 		self.slice_type='vertical'
 		self.set_panel(self.slice_type)
@@ -483,7 +602,6 @@ class SynthPlot(object):
 									self.maxz ]
 			horizontalComp=vComp
 			geo_axis='Lon: '
-			
 		elif all(i<90 for i in self.slice):		
 			''' zonal '''
 			self.extent_vertical=[self.lon_left*self.scale,
@@ -503,9 +621,6 @@ class SynthPlot(object):
 		# make gridded plot
 		p=0
 		for g,field,h_comp,w_comp in group:
-
-			if self.var in ['SPD','SPH']:
-				field.mask=w_comp.mask
 
 			field=field[: ,self.zmask]
 			h_comp=h_comp[: ,self.zmask]
@@ -541,7 +656,5 @@ class SynthPlot(object):
 		fig.suptitle(' Dual-Doppler Synthesis: '+self.get_var_title(self.var) )
 
 		# show figure
-		# plt.tight_layout()
-		plt.draw()
-		
+		plt.draw()	
 
