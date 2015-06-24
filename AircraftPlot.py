@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 import scipy.ndimage
+import itertools as it
 
 class SynthPlot(object):
 
@@ -48,8 +49,8 @@ class SynthPlot(object):
 		self.scale=None
 		self.extent_vertical=[]
 		self.zvalues=[]
+		self.zlevels=[]
 		self.slice_type=None
-
 
 	def set_geographic(self,synth_obj):
 
@@ -135,9 +136,7 @@ class SynthPlot(object):
 								scale_units='dots',
 								width=1.5)
 			qk=grid_ax.quiverkey(Q,0.95,0.8,10,r'$10 \frac{m}{s}$')
-			grid_ax.set_xlim(self.extent_vertical[0],self.extent_vertical[1])
-			grid_ax.set_ylim(self.extent_vertical[2], self.extent_vertical[3])			
-	
+		
 	def set_flight_level(self,stdtape_obj):
 
 		jmp=5
@@ -169,7 +168,7 @@ class SynthPlot(object):
 
 		elif option == 'vertical':
 			self.figure_size=(12,10)
-			self.rows_cols=(self.slicen[0],1)
+			self.rows_cols=(len(self.slice),1)
 			self.windb_size=5
 			self.windb_jump=5
 			self.geo_textsize=12
@@ -183,14 +182,14 @@ class SynthPlot(object):
 			self.cmap_value=[-15,45]
 			self.cmap_name='nipy_spectral'
 		elif field in ['U','V']:
-			self.cmap_value=[-5,15]
+			self.cmap_value=[-5,20]
 			self.cmap_name='jet'
 		elif field in ['SPH','SPD']:
 			if self.slice_type == 'horizontal':
 				self.cmap_value=[5,20]
 				self.cmap_name='Accent'
 			else:
-				self.cmap_value=[0,15]
+				self.cmap_value=[0,35]
 				self.cmap_name='Accent'			
 		else:
 			self.cmap_value=[-1,1]
@@ -206,7 +205,10 @@ class SynthPlot(object):
 			MaskDimY=kwargs['ymask']			
 			array=array[MaskDimX][:,MaskDimY]
 
-		return array
+		if len(array)==1:
+			return array[0]
+		else:
+			return array
 
 	def resample(self,array,**kwargs):
 
@@ -217,72 +219,54 @@ class SynthPlot(object):
 			xjump=kwargs['xres']
 			yjump=kwargs['yres']						
 			array= array[::xjump,::yjump]
-		return array
 
-			
+		return array
 
 	def get_slices(self,array):
 
 		if self.slice_type == 'horizontal':
-			slice_group , vertical_group = self.chop_horizontal(array)
-			return slice_group, vertical_group
+			slice_group  = self.chop_horizontal(array)
+			return slice_group
 
 		elif self.slice_type == 'vertical':
-			slice_group , geo_group = self.chop_vertical (array)
-			return slice_group, geo_group
+			slice_group = self.chop_vertical (array)
+			return slice_group
 
 	def chop_horizontal(self, array):
 
 		# set  vertical level in a list of arrays
 		if self.panel:
 			choped_array = [array[:,:,self.panel[0]] for i in range(6)]
-			vertical_levels = [self.zvalues[self.panel[0]] for i in range(6)]	
-			
+			self.zlevels = [self.zvalues[self.panel[0]] for i in range(6)]	
 		else:
 			choped_array = [array[:,:,i+1] for i in range(6)]
-			vertical_levels = [self.zvalues[i+1] for i in range(6)]
+			self.zlevels = [self.zvalues[i+1] for i in range(6)]
 			
-		return choped_array, vertical_levels
+		return choped_array
 
 	def chop_vertical(self,array):
 
-		# array=array[self.maskLon][:,self.maskLat]
-		# lats=self.lats[self.maskLat]
-		# lons=self.lons[self.maskLon]
+		array=np.squeeze(array)
+		lats=self.shrink(self.lats,mask=self.maskLat)
+		lons=self.shrink(self.lons,mask=self.maskLon)
 
-		lats=self.lats
-		lons=self.lons
+		slices=[]
+		# coords=sorted(self.slice,reverse=True)
+		for coord in self.slice:
+			c=float(coord)
+			if c < 90.0:
+				idx=self.find_nearest(lats,coord)
+				slices.append(array[:,idx,:])
+			elif c > 90.0:
+				idx=self.find_nearest(lons,-coord)
+				slices.append(array[idx,:,:])
 
-		nx,ny,nz=array.shape
-		space=10 #px
+		return slices
 
-		""" creates a vector rng with the range of 
-			indices idx to select from array.
-		"""
-		idx=np.empty(self.slicen[0],dtype=int)
-		weight=(self.slicen[0]-1)/2.0
-		rng=np.arange(-(space*weight),(space*weight)+1,space)
+	def find_nearest(self,array,value):
 
-		""" return a list of slices
-		"""
-		if self.sliceo == 'zonal':
-			mid=np.round(ny/2)
-			idx.fill(mid)
-			slice_idx=[int(i+k) for (i,k) in zip(idx,rng)]
-			slice_idx.reverse() # slice from north to south
-			slices=[array[:,i,:] for i in slice_idx]
-			slice_lats=[lats[i] for i in slice_idx]
-			return slices,slice_lats
-
-		elif self.sliceo == 'meridional':
-			mid=np.round(nx/2)
-			idx.fill(mid)
-			slice_idx=[int(i+k) for (i,k) in zip(idx,rng)]
-			slices=[array[i,:,:] for i in slice_idx]
-			slice_lons=[lons[i] for i in slice_idx]
-			return slices,slice_lons
-
-		# elif self.sliceo == 'crossb':
+		idx = (np.abs(array-value)).argmin()
+		return idx
 
 	def adjust_ticklabels(self,g):
 		
@@ -297,20 +281,59 @@ class SynthPlot(object):
 		new_yticklabel[-1]=' '
 		g.set_yticklabels(new_yticklabel)		
 
-	def add_slice_line(self,axis,array):
+	def add_slice_line(self,axis):
 
-		print self.sliceo
-		foo,slice_coord=self.chop_vertical(array)
+		if self.slice_type =='horizontal':
+			x0 = y0 = None
+			if all(i>90 for i in self.slice):
+				''' slices are meridional '''
+				y0=min(self.shrink(self.lats,mask=self.maskLat))
+				y1=max(self.shrink(self.lats,mask=self.maskLat))
+			elif all(i<90 for i in self.slice):		
+				''' slices are zonal '''
+				x0=min(self.shrink(self.lons,mask=self.maskLon))
+				x1=max(self.shrink(self.lons,mask=self.maskLon))
+			
+			if y0:
+				for value in self.slice:
+					x0 = x1 = -value
+					axis.plot([x0,x1],[y0,y1],'ro-')
+			elif x0:
+				for value in self.slice:
+					y0 = y1 = value
+					axis.plot([x0,x1],[y0,y1],'ro-')
 
-		print slice_coord
+		elif self.slice_type =='vertical':
+			x0=x1=y0=y1=None			
+			if all(i>90 for i in self.slice):
+				''' slices are meridional '''
+				x0=min(self.shrink(self.lats,mask=self.maskLat))
+				x1=max(self.shrink(self.lats,mask=self.maskLat))
+			elif all(i<90 for i in self.slice):		
+				''' slices are zonal '''
+				x0=min(self.shrink(self.lons,mask=self.maskLon))
+				x1=max(self.shrink(self.lons,mask=self.maskLon))
+			
+			x0=x0*self.scale
+			x1=x1*self.scale
+			if self.all_same(self.zlevels):
+				y0 = y1 = self.zlevels[0]
+				axis.plot([x0,x1],[y0,y1],'ro-')
+			else:
+				for value in self.zlevels:
+					y0 = y1 = value
+					print x0,x1,y0,y1
+					axis.plot([x0,x1],[y0,y1],'ro-')
 
+	def horizontal_plane(self ,**kwargs):
 
-
-	def horizontal_plane(self , field_array ,**kwargs):
-
+		field_array=kwargs['field']
 		u_array=kwargs['ucomp']
 		v_array=kwargs['vcomp']
+		w_array=kwargs['wcomp']
 		self.zvalues=kwargs['zlevels']
+
+		field_array.mask=w_array.mask
 
 		if self.panel:
 			self.set_panel('single')
@@ -337,12 +360,12 @@ class SynthPlot(object):
 			u_array=self.shrink(u_array,xmask=self.maskLon,ymask=self.maskLat)
 			v_array=self.shrink(v_array,xmask=self.maskLon,ymask=self.maskLat)
 
-		field_group, level_group = self.get_slices(field_array)
-		ucomp, level_group = self.get_slices(u_array)
-		vcomp, level_group = self.get_slices(v_array)
+		field_group = self.get_slices(field_array)
+		ucomp = self.get_slices(u_array)
+		vcomp = self.get_slices(v_array)
 
 		# creates iterator group
-		group=zip(plot_grids,level_group,field_group,ucomp,vcomp)
+		group=zip(plot_grids,self.zlevels,field_group,ucomp,vcomp)
 
 		# make gridded plot
 		for g,k,field,u,v in group:
@@ -350,31 +373,31 @@ class SynthPlot(object):
 			g.plot(self.loncoast, self.latcoast, color='b')
 			g.plot(self.flight_lon, self.flight_lat)		
 
+			extent=[self.lon_left+0.02,
+					self.lon_right,
+					self.lat_bot,
+					self.lat_top ]
 
-			# if self.var == 'SPH':
-			# 	u.mask=field.mask
-			# 	v.mask=field.mask
-			
 			im = g.imshow(field.T,
 							interpolation='none',
 							origin='lower',
-							extent=[self.lon_left,
-									self.lon_right,
-									self.lat_bot,
-									self.lat_top ],
+							extent=extent,
 							vmin=self.cmap_value[0],
 							vmax=self.cmap_value[1],
 							cmap=self.cmap_name)
 
 			# self.add_windvector(g,u,v)
 
-			# self.slice_type='vertical'
-			# foo , slice_geo = self.get_slices(field)
+			if self.slice:
+				self.add_slice_line(g)
 
-			# print slice_geo
-			# self.add_slice_line(g,field)
+			g.set_xlim(extent[0], extent[1])
+			g.set_ylim(extent[2], extent[3])				
 
-			g.grid(True)
+			g.grid(True, which = 'major',linewidth=1)
+			g.grid(True, which = 'minor',alpha=0.5)
+			g.minorticks_on()
+
 			ztext='MSL='+str(k)+'km'
 			g.text(	0.1, 0.08,
 					ztext,
@@ -391,8 +414,9 @@ class SynthPlot(object):
 		plt.tight_layout()
 		plt.draw()
 
-	def vertical_plane(self,field_array,**kwargs):
+	def vertical_plane(self,**kwargs):
 
+		field_array=kwargs['field']
 		u_array=kwargs['ucomp']
 		v_array=kwargs['vcomp']
 		w_array=kwargs['wcomp']
@@ -413,38 +437,40 @@ class SynthPlot(object):
 								cbar_location = "top",
 								cbar_mode="single",
 								aspect=True)
-	
-
 
 		field_array=self.shrink(field_array,xmask=self.maskLon,ymask=self.maskLat)
 		u_array=self.shrink(u_array,xmask=self.maskLon,ymask=self.maskLat)
 		v_array=self.shrink(v_array,xmask=self.maskLon,ymask=self.maskLat)
 		w_array=self.shrink(w_array,xmask=self.maskLon,ymask=self.maskLat)
 
-		field_group , slice_geo = self.get_slices(field_array)
-		uComp , slice_geo = self.get_slices(u_array)
-		vComp , slice_geo = self.get_slices(v_array)
-		verticalComp , slice_geo = self.get_slices(w_array)
-
+		field_group = self.get_slices(field_array)
+		uComp  = self.get_slices(u_array)
+		vComp  = self.get_slices(v_array)
+		verticalComp  = self.get_slices(w_array)
 
 		self.minz=0.25
 		self.maxz=5.0
 		self.zmask= np.logical_and(self.zvalues >= self.minz, self.zvalues <= self.maxz)
 
 		self.scale=10
-		if self.sliceo == 'zonal':
-			self.extent_vertical=[self.lon_left*self.scale,
-									self.lon_right*self.scale,
-									self.minz,
-									self.maxz ]
-			horizontalComp=uComp
-
-		elif self.sliceo == 'meridional':
+		if all(i>90 for i in self.slice):
+			''' meridional '''
 			self.extent_vertical=[self.lat_bot*self.scale,
 									self.lat_top*self.scale,
 									self.minz,
 									self.maxz ]
 			horizontalComp=vComp
+			geo_axis='Lon: '
+			
+		elif all(i<90 for i in self.slice):		
+			''' zonal '''
+			self.extent_vertical=[self.lon_left*self.scale,
+									self.lon_right*self.scale,
+									self.minz,
+									self.maxz ]
+			horizontalComp=uComp
+			geo_axis='Lat: '
+			
 
 		# creates iterator group
 		group=zip(plot_grids,
@@ -471,17 +497,15 @@ class SynthPlot(object):
 							vmax=self.cmap_value[1],
 							cmap=self.cmap_name)
 			# self.add_windvector(g,h_comp,w_comp)
+			self.add_slice_line(g)
 
-			g.grid(True)
+			g.grid(True, which = 'major',linewidth=1)
+			g.grid(True, which = 'minor',alpha=0.5)
+			g.minorticks_on()
 
 			self.adjust_ticklabels(g)
-			
-			if np.all((np.asarray(slice_geo)>0)):
-				geo_axis='Lat: '
-			else:
-				geo_axis='Lon: '
 
-			geotext=geo_axis+str(np.round(slice_geo[p],2))
+			geotext=geo_axis+str(self.slice[p])
 			g.text(	0.03, 0.9,
 					geotext,
 					fontsize=self.zlevel_textsize,
@@ -529,3 +553,6 @@ class SynthPlot(object):
 			title = title.replace('Horizontal','Meridional')
 
 		return title
+
+	def all_same(self,array):
+		return all(x == array[0] for x in array)

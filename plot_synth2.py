@@ -34,8 +34,7 @@ def main( args ):
 	stdfile = args.std
 	plotFields = args.field 
 	panelNum = args.panel
-	sliceNum = args.slice
-	sliceOrient = args.orientation
+	sliceCoords = args.slice
 	zoomOpt = args.zoomin
 
 	# base directory
@@ -88,8 +87,7 @@ def main( args ):
 					var=f,
 					windb=True,
 					panel=panelNum,
-					sliceN=sliceNum,
-					sliceO=sliceOrient[0],
+					sliceCoords=sliceCoords,
 					zoomIn=zoomOpt)
 
 	plt.show()	
@@ -104,15 +102,14 @@ def plot_synth(S , F, **kwargs):
 	P.var=kwargs['var']
 	P.windb=kwargs['windb']
 	P.panel=kwargs['panel']
-	P.slicen=kwargs['sliceN']
-	P.sliceo=kwargs['sliceO']
 	P.zoomOpt=kwargs['zoomIn']
-
-	if P.var == 'SPD':
-		P.var = 'SPH' # horizontal proyection
+	# P.slice=kwargs['sliceCoords']
+	P.slice=sorted(kwargs['sliceCoords'],reverse=True)
 
 	# get array
-	array=getattr(S , P.var)
+	if P.var == 'SPD':
+		P.var = 'SPH' # horizontal proyection
+	array=getattr(S , P.var)		
 	zlevel=getattr(S , 'Z')
 	U=getattr(S , 'U')		
 	V=getattr(S , 'V')	
@@ -130,17 +127,21 @@ def plot_synth(S , F, **kwargs):
 	P.set_coastline()
 
 	""" make horizontal plane plot """
-	P.horizontal_plane(array,zlevels=S.Z,ucomp=U,vcomp=V)
+	P.horizontal_plane(field=array,zlevels=S.Z,ucomp=U,vcomp=V,wcomp=W)
 	
 
 	""" make vertical plane plots """
-	if P.slicen and P.sliceo:
-		if P.var == 'SPH' and P.sliceo == 'zonal':
-			P.vertical_plane(getattr(S , 'SPZ'),zlevels=S.Z,ucomp=U,vcomp=V,wcomp=W)
-		elif P.var == 'SPH' and P.sliceo == 'meridional':
-			P.vertical_plane(getattr(S , 'SPM'),zlevels=S.Z,ucomp=U,vcomp=V,wcomp=W)
+	if P.slice:
+		if P.var == 'SPH' :
+			if all(i>90 for i in P.slice):
+				P.vertical_plane(field=getattr(S , 'SPM'),zlevels=S.Z,ucomp=U,vcomp=V,wcomp=W)
+			elif all(i<90 for i in P.slice):		
+				P.vertical_plane(field=getattr(S , 'SPZ'),zlevels=S.Z,ucomp=U,vcomp=V,wcomp=W)
+			else:
+				print "all coordinates in lat or lon"
+				exit()
 		else:
-			P.vertical_plane(array,zlevels=S.Z,ucomp=U,vcomp=V,wcomp=W)
+			P.vertical_plane(field=array,zlevels=S.Z,ucomp=U,vcomp=V,wcomp=W)
 		
 	
 		
@@ -195,30 +196,12 @@ if __name__ == "__main__":
 	""" Slice options """
 	group_slice=parser.add_argument_group('Slice options')
 	group_slice.add_argument('--slice', '-sl',
-							metavar='num',
-							type=int, 
-							nargs=1,
+							metavar='cooordinate (lat or lon)',
+							type=float, 
+							nargs='+',
 							required=False,
-							help="number of slices (they are equally spaced)")
-	group_slice.add_argument('--orientation', '-o',
-							metavar='str',
-							nargs=1,
-							required=False,
-							choices=['zonal','meridional','crossb'],
-							default=None,
-							help="orientation of slices (zonal, meridional, crossb")
+							help="coordinates for slices; both values are positive floats")
 
 	args = parser.parse_args()	
 
-	if args.slice and (args.orientation is None):
-		print "Error Indicate orientation of slices\n"
-		exit()
-
-	# main(	args.ced, 
-	# 		args.std,
-	# 		args.field,
-	# 		args.panel,
-	# 		args.slice,
-	# 		args.orientation,
-	# 		args.zoomin)
 	main(args)
