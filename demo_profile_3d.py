@@ -8,29 +8,30 @@ import matplotlib.pyplot as plt
 x, y, z = np.mgrid[-2:2:0.2, -2:2:0.2, -2:2:0.16]
 v = x*np.exp(-x**2-y**2-z**2)
 
-print v.shape
 
 #-- Extract the line...
 # Make a line with "num" points...
-num = 100
-x0, y0 = 0, 0 # These are in _pixel_ coordinates!!
-x1, y1 = 5, 20
-x, y = np.linspace(x0, x1, num), np.linspace(y0, y1, num)
-z=np.linspace(0,25,num)
-zz=np.array([z,]*num)
+resolution = 40
+x0, y0 = 0, 5 # These are in _pixel_ coordinates!!
+x1, y1 = 20, 20
+x, y = np.linspace(x0, x1, resolution), np.linspace(y0, y1, resolution)
+z=np.linspace(0,25,resolution)
+zz=np.array([z,]*resolution)
 
-print x.shape
-print y.shape
-print zz.shape
 
-vi=np.empty([num,num])
+vi=np.empty([resolution,resolution])
 
-for k in range(num):
+for k in range(resolution):
 	foo = scipy.ndimage.map_coordinates(v, [y,x,zz[:,k]])
 	vi[k,:]=foo
 
 
-print vi.shape
+print ("v shape: {0}".format(v.shape))
+print ("x shape: {0}".format(x.shape))
+print ("y shape: {0}".format(y.shape))
+print ("zz shape: {0}".format(zz.shape))
+print ("vi shape: {0}".format(vi.shape))
+
 
 # #-- Plot...
 plt.subplot(2,1,1)
@@ -44,6 +45,7 @@ plt.colorbar()
 plt.subplot(2,1,2)
 plt.imshow(	vi,
 		origin='lower',
+		extent=[0,20,0,20],
 		vmin=-0.1,vmax=0.1)
 plt.colorbar()
-plt.show()
+plt.show(block=False)
