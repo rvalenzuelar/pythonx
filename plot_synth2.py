@@ -198,7 +198,7 @@ if __name__ == "__main__":
 	group_fields.add_argument('--field', '-f',
 							metavar='str',
 							nargs='+',
-							choices=['DBZ','SPD','CON','VOR','U','V'],
+							choices=['DBZ','SPD','CON','VOR','U','V','WVA','WUP'],
 							default=['DBZ','SPD','CON','VOR'],
 							help="specify radar field(s) to be plotted")	
 

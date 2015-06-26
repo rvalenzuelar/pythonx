@@ -133,6 +133,9 @@ class SynthPlot(object):
 		elif field in ['U','V']:
 			self.cmap_value=[-5,20]
 			self.cmap_name='jet'
+		elif field in ['WVA','WUP']:
+			self.cmap_value=[-2,2]
+			self.cmap_name='PRGn'			
 		elif field in ['SPH','SPD']:
 			if self.slice_type == 'horizontal':
 				self.cmap_value=[5,35]
@@ -140,9 +143,12 @@ class SynthPlot(object):
 			else:
 				self.cmap_value=[0,35]
 				self.cmap_name='Accent'			
-		else:
+		elif field == 'CON':
 			self.cmap_value=[-1,1]
-			self.cmap_name='jet'		
+			self.cmap_name='RdBu_r'
+		elif field == 'VOR':
+			self.cmap_value=[-1,1]
+			self.cmap_name='PuOr'
 
 	def get_slices(self,array):
 
@@ -159,9 +165,11 @@ class SynthPlot(object):
 					'SPD': 'Total wind speed [m/s]',
 					'SPH': 'Horizontal wind speed [m/s]',
 					'VOR': 'Vorticity',
-					'CONV': 'Convergence',
+					'CON': 'Convergence',
 					'U': 'wind u-component [m/s]',
-					'V': 'wind v-component [m/s]'}
+					'V': 'wind v-component [m/s]',
+					'WVA': 'wind w-component [m/s] (variational)',
+					'WUP': 'wind w-component [m/s] (integration)'}
 		title=var_title[var]
 		
 		if self.slice_type == 'vertical' and self.sliceo == 'zonal':
@@ -206,7 +214,8 @@ class SynthPlot(object):
 			else:
 				for value in self.zlevels:
 					y0 = y1 = value
-					print x0,x1,y0,y1
+
+
 					axis.plot([x0,x1],[y0,y1],'ro-')
 
 	def add_windvector(self,grid_ax,comp1,comp2):
@@ -265,10 +274,10 @@ class SynthPlot(object):
 			self.lon_left=-124.1
 			self.lon_right=-122.9
 		elif zoom_type == 'onshore':
-			self.lat_bot=38.1
-			self.lat_top=39.1
-			self.lon_left=-124.1
-			self.lon_right=-122.9	
+			self.lat_bot=38.3
+			self.lat_top=39.4
+			self.lon_left=-123.9
+			self.lon_right=-122.6	
 		self.maskLat= np.logical_and(self.lats >= self.lat_bot, self.lats <= self.lat_top)
 		self.maskLon= np.logical_and(self.lons >= self.lon_left, self.lons <= self.lon_right)
 
@@ -328,6 +337,8 @@ class SynthPlot(object):
 			for coord in self.slicem:
 				idx=self.find_nearest(lons,-coord)
 				slices.append(array[idx,:,:])
+		# elif self.sliceo=='cross':
+		# elif self.sliceo=='along:
 
 		return slices
 
@@ -522,8 +533,10 @@ class SynthPlot(object):
 							vmin=self.cmap_value[0],
 							vmax=self.cmap_value[1],
 							cmap=self.cmap_name)
+			
+			if self.windb:
+				self.add_windvector(g,h_comp.T,w_comp.T)
 
-			self.add_windvector(g,h_comp.T,w_comp.T)
 			self.add_slice_line(g)
 
 			g.grid(True, which = 'major',linewidth=1)
