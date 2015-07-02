@@ -47,6 +47,7 @@ lry = lat - 0.1
 input_param = (ulx, uly, lrx, lry, dem_file, temp_file)
 run_gdal = 'gdal_translate -projwin %s %s %s %s %s %s' % input_param
 os.system(run_gdal)
+dtmfile=None
 
 resamp_to=50
 input_param = (resamp_to,resamp_to,temp_file, out_file)
@@ -63,10 +64,34 @@ band=datafile.GetRasterBand(1)
 cols=datafile.RasterXSize
 rows=datafile.RasterYSize
 data=band.ReadAsArray(0,0,cols,rows)
+datafile=None
 
-
-plt.imshow(data,interpolation=None,cmap='terrain',vmin=0,vmax=800)
+plt.figure()
+plt.imshow(data,interpolation='none',cmap='terrain',vmin=0,vmax=800)
 plt.colorbar()
-plt.show()
+plt.draw()
 
-datafile=dtmfile=None
+levels=15
+dtm_mask=np.zeros((rows,cols,levels))
+
+res=25 # [m] vertical resolution
+for ij in np.ndindex(dtm_mask.shape[:2]):
+	i,j=ij
+	n = int(data[i,j]/res)
+	if n > levels:
+		dtm_mask[i,j] = 1
+	else:
+		dtm_mask[i,j,0:n] = 1
+	
+	# print dtm_mask[i,j]
+
+# print dtm_mask[:,:,5]
+
+plt.figure()
+plt.imshow(dtm_mask[:,:,2],interpolation='none')
+plt.colorbar()
+plt.draw()
+
+
+plt.show(block=False)
+
