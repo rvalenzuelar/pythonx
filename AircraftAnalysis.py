@@ -148,7 +148,6 @@ class Synthesis(object):
 		# in 3D arrays
 		return  np.swapaxes(array,0,2)
 		
-
 	def print_shapes(self):
 
 		print "\nArray shapes:"
@@ -161,11 +160,26 @@ class Synthesis(object):
 					print ( "%4s = %s" % (attr, len(value) ) )
 		print ""
 
+	def print_axis(self,axis):
+
+		# open netCDF file for reading 
+		synth = Dataset(self.file,'r') 
+		nc_vars = [var for var in synth.variables]  # list of nc variables
+
+		print "\nAxis: "+axis.upper()
+		print "-----------------------------"
+		for var in nc_vars:
+			if var == axis:
+				print synth.variables[var][:]
+				
+		print ""
+
+		# close netCDF  file.
+		synth.close()		
+
 	def print_global_atts(self):
 		# open netCDF file for reading 
 		synth = Dataset(self.file,'r') 
-		
-		nc_dims = [dim for dim in synth.dimensions]  # list of nc dimensions
 		nc_vars = [var for var in synth.variables]  # list of nc variables
 
 		print "\nGlobal attributes:"
