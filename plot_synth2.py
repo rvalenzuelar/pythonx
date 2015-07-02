@@ -33,12 +33,14 @@ def main( args ):
 	filepath = args.ced
 	stdfile = args.std
 	plotFields = args.field 
+	print_shapes = args.print_shapes
+	print_global_atts = args.print_global_atts
 
-	# base directory
+	"""base directory """
 	basedirectory = "/home/rvalenzuela/P3_v2/synth_test/"
 	stdtapedir = "/home/rvalenzuela/Github/correct_dorade_metadata/"
 
-	# input folder
+	"""input folder """
 	mypath=dirname(filepath)
 	myfile=basename(filepath)
 
@@ -68,10 +70,14 @@ def main( args ):
 	F=T.Flightpath(S.start, S.end)
 
 	""" print shape of attribute arrays """
-	# S.print_shapes()
+	if print_shapes:
+		S.print_shapes()
+		if not print_global_atts: exit()
 
 	""" print global attirutes of cedric synthesis """
-	# S.print_global_atts()
+	if print_global_atts:
+		S.print_global_atts()
+		exit()
 	
 	""" print synthesis time """
 	print "Synthesis start time :%s" % S.start
@@ -85,10 +91,11 @@ def main( args ):
 					panel=args.panel,
 					slicem = args.slicem,
 					slicez = args.slicez,
-					zoomIn=args.zoomin)
+					zoomIn=args.zoomin,
+					mask = args.mask)
 	
-	# plt.show(block=False)	
-	plt.show()	
+	plt.show(block=False)	
+	# plt.show()	
 
 def plot_synth(S , F, **kwargs):
 
@@ -96,10 +103,12 @@ def plot_synth(S , F, **kwargs):
 	P=ap.SynthPlot()
 
 	"""set variables """
-	P.var=kwargs['var']
-	P.windb=kwargs['windb']
-	P.panel=kwargs['panel']
-	P.zoomOpt=kwargs['zoomIn']
+	P.var = kwargs['var']
+	P.windb = kwargs['windb']
+	P.panel = kwargs['panel']
+	P.zoomOpt = kwargs['zoomIn']
+	P.mask = kwargs['mask']
+
 	try:
 		P.slicem=sorted(kwargs['slicem'],reverse=True)
 	except TypeError:
@@ -133,7 +142,6 @@ def plot_synth(S , F, **kwargs):
 	""" make horizontal plane plot """
 	P.horizontal_plane(field=array)
 	
-
 	""" make vertical plane plots """		
 	if P.slicem:
 		if P.var == 'SPH' :
@@ -150,20 +158,24 @@ def plot_synth(S , F, **kwargs):
 										sliceo='zonal') # zonal component)
 		else:
 			P.vertical_plane(field=array,sliceo='zonal')	
+
+	# if P.dtm:
+	# 	P.dtm_with_flightpath()
 		
 
 """call main function """
 if __name__ == "__main__":
 
 	parser = argparse.ArgumentParser(	description=usage(),
-											formatter_class=argparse.RawTextHelpFormatter)
+											formatter_class=argparse.RawTextHelpFormatter,
+											add_help=False)
 
 	""" Mandatory Arguments """
 	group_mandatory=parser.add_argument_group('Needed')
 	group_mandatory.add_argument('--ced','-c',
 							metavar='file',
 							required=True,
-							help=	"netCDF CEDRIC synthesis with format CaseNumber/FileName." \
+							help=	"netCDF CEDRIC synthesis with format CaseName/LegName." \
 									"\nExample: c03/leg01.cdf")
 	group_mandatory.add_argument('--std','-s' ,
 							metavar='file',
@@ -173,6 +185,9 @@ if __name__ == "__main__":
 	
 	""" Optional Arguments """
 	group_optional=parser.add_argument_group('Options')
+	group_optional.add_argument('--help', '-h',
+							action='help',
+							help='shows this help message and exit')
 	group_optional.add_argument('--panel', '-p',
 							metavar='num',
 							type=int, 
@@ -186,14 +201,22 @@ if __name__ == "__main__":
 							choices=['offshore','onshore'],
 							help="zoom-in over a offshore|onshore flight leg")	
 	group_optional.add_argument('--windv', '-w',
-						action='store_true',
-						help="include wind vectors")	
+							action='store_true',
+							help="include wind vectors")	
+	group_optional.add_argument('--print_shapes',
+							action='store_true',
+							help="print field variables and arrays with their shapes and exit")
+	group_optional.add_argument('--print_global_atts',
+							action='store_true',
+							help="print CEDRIC file global attributes and exit")	
+	group_optional.add_argument('--mask','-m',
+							action='store_true',
+							help="mask pixels with NaN vertical velocity ")	
 
 	""" Field Arguments """
 	group_fields = group_optional.add_mutually_exclusive_group()
 	group_fields.add_argument('--all', '-a',
 							action='store_true',
-							default=None,
 							help="[default] plot all fields (DBZ,SPD,CON,VOR)")
 	group_fields.add_argument('--field', '-f',
 							metavar='str',
@@ -212,11 +235,11 @@ if __name__ == "__main__":
 							required=False,
 							help="latitude coordinates for zonal slices")
 	group_slice.add_argument('--slicem', '-slm',
-						metavar='lon (float)',
-						type=float, 
-						nargs='+',
-						required=False,
-						help="longitude coordinates for zonal slices")
+							metavar='lon (float)',
+							type=float, 
+							nargs='+',
+							required=False,
+							help="longitude coordinates for zonal slices")
 
 	args = parser.parse_args()	
 

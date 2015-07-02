@@ -130,15 +130,18 @@ class SynthPlot(object):
 		if field == 'DBZ':
 			self.cmap_value=[-15,45]
 			self.cmap_name='nipy_spectral'
-		elif field in ['U','V']:
-			self.cmap_value=[-5,20]
-			self.cmap_name='jet'
+		elif field == 'U':
+			self.cmap_value=[-20,20]
+			self.cmap_name='Accent'
+		elif field == 'V':
+			self.cmap_value=[-10,30]
+			self.cmap_name='Accent'			
 		elif field in ['WVA','WUP']:
 			self.cmap_value=[-2,2]
 			self.cmap_name='PRGn'			
 		elif field in ['SPH','SPD']:
 			if self.slice_type == 'horizontal':
-				self.cmap_value=[5,35]
+				self.cmap_value=[5,20]
 				self.cmap_name='Accent'
 			else:
 				self.cmap_value=[0,35]
@@ -371,11 +374,12 @@ class SynthPlot(object):
 		v_array=self.v_array
 		w_array=self.w_array
 
-		if self.var == 'SPH':
+		if self.mask:
+			# if self.var == 'SPH':
 			field_array.mask=w_array.mask
 
-		u_array.mask=w_array.mask
-		v_array.mask=w_array.mask
+			u_array.mask=w_array.mask
+			v_array.mask=w_array.mask
 
 		if self.panel:
 			self.set_panel('single')
