@@ -35,6 +35,7 @@ def main( args ):
 	plotFields = args.field 
 	print_shapes = args.print_shapes
 	print_global_atts = args.print_global_atts
+	print_axis = args.print_axis
 
 	"""base directory """
 	basedirectory = "/home/rvalenzuela/P3_v2/synth_test/"
@@ -54,14 +55,14 @@ def main( args ):
 
 	if not myfile:
 		print "Please include filename in path"
-		exit()
+		sys.exit()
 
 	""" creates a synthesis """
 	try:
 		S=aa.Synthesis(filepath)
 	except RuntimeError:
 		print "Input Error: check file names\n"
-		exit()
+		sys.exit()
 
 	""" creates a std tape """
 	T=aa.Stdtape(stdtapedir+stdfile)
@@ -72,13 +73,22 @@ def main( args ):
 	""" print shape of attribute arrays """
 	if print_shapes:
 		S.print_shapes()
-		if not print_global_atts: exit()
+		if not print_global_atts: 
+			sys.exit()
 
 	""" print global attirutes of cedric synthesis """
 	if print_global_atts:
 		S.print_global_atts()
-		exit()
-	
+		sys.exit()
+
+	""" print axis values """
+	if print_axis:
+		for ax in print_axis:
+			if ax.isupper():
+				ax=ax.lower()
+			S.print_axis(ax)
+		sys.exit()
+
 	""" print synthesis time """
 	print "Synthesis start time :%s" % S.start
 	print "Synthesis end time :%s\n" % S.end
@@ -94,8 +104,8 @@ def main( args ):
 					zoomIn=args.zoomin,
 					mask = args.mask)
 	
-	plt.show(block=False)	
-	# plt.show()	
+	# plt.show(block=False)	
+	plt.show()
 
 def plot_synth(S , F, **kwargs):
 
@@ -124,7 +134,9 @@ def plot_synth(S , F, **kwargs):
 	array=getattr(S , P.var)		
 
 	""" set common variables """
-	P.zvalues=S.Z
+	P.axesval['x']=S.X
+	P.axesval['y']=S.Y
+	P.axesval['z']=S.Z
 	P.u_array=S.U
 	P.v_array=S.V
 	P.w_array=S.WVA
@@ -170,6 +182,11 @@ if __name__ == "__main__":
 											formatter_class=argparse.RawTextHelpFormatter,
 											add_help=False)
 
+	help_option=parser.add_argument_group('Help:')
+	help_option.add_argument('--help', '-h',
+							action='help',
+							help='shows this help message and exit')
+
 	""" Mandatory Arguments """
 	group_mandatory=parser.add_argument_group('Needed')
 	group_mandatory.add_argument('--ced','-c',
@@ -183,58 +200,64 @@ if __name__ == "__main__":
 							help=	"netCDF NOAA-P3 standard tape file using RAF format." \
 									"\nExample: 010123I.nc")
 	
-	""" Optional Arguments """
-	group_optional=parser.add_argument_group('Options')
-	group_optional.add_argument('--help', '-h',
-							action='help',
-							help='shows this help message and exit')
-	group_optional.add_argument('--panel', '-p',
+	""" Plot Options """
+	plot_options=parser.add_argument_group('Plot options')
+	plot_options.add_argument('--panel', '-p',
 							metavar='num',
 							type=int, 
 							nargs=1,
 							default=None,
 							help="choose a panel (1-6); otherwise plots a figure with 6 panles")
-	group_optional.add_argument('--zoomin', '-z',
+	plot_options.add_argument('--zoomin', '-z',
 							metavar='str',
 							nargs=1,
 							default=None,
 							choices=['offshore','onshore'],
 							help="zoom-in over a offshore|onshore flight leg")	
-	group_optional.add_argument('--windv', '-w',
+	plot_options.add_argument('--windv', '-w',
 							action='store_true',
 							help="include wind vectors")	
-	group_optional.add_argument('--print_shapes',
-							action='store_true',
-							help="print field variables and arrays with their shapes and exit")
-	group_optional.add_argument('--print_global_atts',
-							action='store_true',
-							help="print CEDRIC file global attributes and exit")	
-	group_optional.add_argument('--mask','-m',
+
+	plot_options.add_argument('--mask','-m',
 							action='store_true',
 							help="mask pixels with NaN vertical velocity ")	
 
 	""" Field Arguments """
-	group_fields = group_optional.add_mutually_exclusive_group()
+	group_fields = plot_options.add_mutually_exclusive_group()
 	group_fields.add_argument('--all', '-a',
 							action='store_true',
 							help="[default] plot all fields (DBZ,SPD,CON,VOR)")
 	group_fields.add_argument('--field', '-f',
-							metavar='str',
+							metavar='STR',
 							nargs='+',
 							choices=['DBZ','SPD','CON','VOR','U','V','WVA','WUP'],
 							default=['DBZ','SPD','CON','VOR'],
 							help="specify radar field(s) to be plotted")	
 
+	""" Print Options """
+	print_options=parser.add_argument_group('Print options')
+	print_options.add_argument('--print_shapes',
+							action='store_true',
+							help="print field variables and arrays with their shapes and exit")
+	print_options.add_argument('--print_global_atts',
+							action='store_true',
+							help="print CEDRIC file global attributes and exit")	
+	print_options.add_argument('--print_axis','-pa',
+							metavar='STR',
+							nargs='+',
+							choices=['X','x','Y','y','Z','z'],
+							help=" print axis values (X,Y,Z)")	
+
 
 	""" Slice options """
-	group_slice=parser.add_argument_group('Slices')
-	group_slice.add_argument('--slicez', '-slz',
+	slice_options=parser.add_argument_group('Slice options')
+	slice_options.add_argument('--slicez', '-slz',
 							metavar='lat (float)',
 							type=float, 
 							nargs='+',
 							required=False,
 							help="latitude coordinates for zonal slices")
-	group_slice.add_argument('--slicem', '-slm',
+	slice_options.add_argument('--slicem', '-slm',
 							metavar='lon (float)',
 							type=float, 
 							nargs='+',
