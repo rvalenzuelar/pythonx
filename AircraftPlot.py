@@ -7,11 +7,14 @@
 
 from mpl_toolkits.basemap import Basemap
 from mpl_toolkits.axes_grid1 import ImageGrid
+from os.path import expanduser,isfile
+import os
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
 import scipy.ndimage
 import itertools as it
+import gdal
 
 class SynthPlot(object):
 
@@ -33,13 +36,14 @@ class SynthPlot(object):
 		self.cmap_value=None
 		self.cmap_name=None
 		self.lats=None 
-		self.lons=None 
-		self.lat_bot=None
-		self.lat_top=None
-		self.lon_left=None
-		self.lon_right=None
-		self.loncoast=None
-		self.latcoast=None 
+		self.lons=None
+		self.extent={'lx':' ','rx':' ','by':' ','ty':' '}
+		self.extentv={'lx':' ','rx':' ','by':' ','ty':' '}
+		# self.lat_bot=None
+		# self.lat_top=None
+		# self.lon_left=None
+		# self.lon_right=None
+		self.coast={'lon':' ', 'lat': ' '}
 		self.flight_lat=None
 		self.flight_lon=None
 		self.maskLat=None
@@ -47,8 +51,7 @@ class SynthPlot(object):
 		self.minz=None
 		self.maxz=None
 		self.scale=None
-		self.extent_vertical=[]
-		self.zvalues=[]
+		self.axesval={'x':' ','y':' ','z':' '}
 		self.zlevels=[]
 		self.slice_type=None
 		self.u_array=[]
@@ -58,25 +61,26 @@ class SynthPlot(object):
 	def set_geographic(self,synth):
 
 		self.lats=synth.LAT
-		self.lat_bot=min(synth.LAT)
-		self.lat_top=max(synth.LAT)
-		
+		self.extent['by']=min(synth.LAT)
+		self.extent['ty']=max(synth.LAT)
+
 		self.lons=synth.LON 
-		self.lon_left=min(synth.LON)
-		self.lon_right=max(synth.LON)
+		self.extent['lx']=min(synth.LON)
+		self.extent['rx']=max(synth.LON)
+
 
 	def set_coastline(self):
 
 		M = Basemap(		projection='cyl',
-							llcrnrlat=self.lat_bot,
-							urcrnrlat=self.lat_top,
-							llcrnrlon=self.lon_left,
-							urcrnrlon=self.lon_right,
+							llcrnrlat=self.extent['by'],
+							urcrnrlat=self.extent['ty'],
+							llcrnrlon=self.extent['lx'],
+							urcrnrlon=self.extent['rx'],
 							resolution='i')
 		coastline = M.coastpolygons
 
-		self.loncoast= coastline[1][0][13:-1]
-		self.latcoast= coastline[1][1][13:-1]
+		self.coast['lon']= coastline[1][0][13:-1]
+		self.coast['lat']= coastline[1][1][13:-1]
 	
 	def set_flight_level(self,stdtape):
 
@@ -160,8 +164,42 @@ class SynthPlot(object):
 			return slice_group
 
 		elif self.slice_type == 'vertical':
-			slice_group = self.chop_vertical (array)
+			slice_group = self.chop_vertical(array)
 			return slice_group
+
+	def chop_horizontal(self, array):
+
+		zvalues=self.axesval['z']
+
+		# set  vertical level in a list of arrays
+		if self.panel:
+			choped_array = [array[:,:,self.panel[0]] for i in range(6)]
+			self.zlevels = [zvalues[self.panel[0]] for i in range(6)]	
+		else:
+			choped_array = [array[:,:,i+1] for i in range(6)]
+			self.zlevels = [zvalues[i+1] for i in range(6)]
+			
+		return choped_array
+
+	def chop_vertical(self,array):
+
+		array=np.squeeze(array)
+		lats=self.shrink(self.lats,mask=self.maskLat)
+		lons=self.shrink(self.lons,mask=self.maskLon)
+
+		slices=[]
+		if self.sliceo=='zonal':		
+			for coord in self.slicez:
+				idx=self.find_nearest(lats,coord)
+				slices.append(array[:,idx,:])
+		elif self.sliceo=='meridional':
+			for coord in self.slicem:
+				idx=self.find_nearest(lons,-coord)
+				slices.append(array[idx,:,:])
+		# elif self.sliceo=='cross':
+		# elif self.sliceo=='along:
+
+		return slices
 
 	def get_var_title(self,var):
 		var_title={	'DBZ': 'Reflectivity factor [dBZ]',
@@ -242,8 +280,8 @@ class SynthPlot(object):
 								scale_units='dots',
 								width=self.windv_width)
 			qk=grid_ax.quiverkey(Q,0.8,0.08,10,r'$10 \frac{m}{s}$')
-			grid_ax.set_xlim(self.lon_left,self.lon_right)
-			grid_ax.set_ylim(self.lat_bot, self.lat_top)			
+			grid_ax.set_xlim(self.extent['lx'],self.extent['rx'])
+			grid_ax.set_ylim(self.extent['by'], self.extent['ty'])			
 
 		elif self.slice_type == 'vertical':
 
@@ -255,7 +293,7 @@ class SynthPlot(object):
 				lons=self.shrink(self.lons,mask=self.maskLon)
 				x=self.resample(lons,res=xjump)
 
-			zvalues=self.shrink(self.zvalues,mask=self.zmask)
+			zvalues=self.shrink(self.axesval['z'],mask=self.zmask)
 			zjump=1
 			y=self.resample(zvalues,res=zjump)
 
@@ -272,17 +310,19 @@ class SynthPlot(object):
 	def zoom_in(self,zoom_type):
 
 		if zoom_type == 'offshore':
-			self.lat_bot=38.1
-			self.lat_top=39.1
-			self.lon_left=-124.1
-			self.lon_right=-122.9
+			self.extent['by']=38.1
+			self.extent['ty']=39.1
+			self.extent['lx']=-124.1
+			self.extent['rx']=-122.9
 		elif zoom_type == 'onshore':
-			self.lat_bot=38.3
-			self.lat_top=39.4
-			self.lon_left=-123.9
-			self.lon_right=-122.6	
-		self.maskLat= np.logical_and(self.lats >= self.lat_bot, self.lats <= self.lat_top)
-		self.maskLon= np.logical_and(self.lons >= self.lon_left, self.lons <= self.lon_right)
+			self.extent['by']=38.3
+			self.extent['ty']=39.4
+			self.extent['lx']=-123.9
+			self.extent['rx']=-122.6	
+		self.maskLat= np.logical_and(self.lats >= self.extent['by'], 
+										self.lats <= self.extent['ty'])
+		self.maskLon= np.logical_and(self.lons >= self.extent['lx'], 
+										self.lons <= self.extent['rx'])
 
 	def shrink(self,array, **kwargs):
 
@@ -291,7 +331,7 @@ class SynthPlot(object):
 
 		elif len(kwargs)==2:
 			MaskDimX=kwargs['xmask']
-			MaskDimY=kwargs['ymask']			
+			MaskDimY=kwargs['ymask']
 			array=array[MaskDimX][:,MaskDimY]
 
 		if len(array)==1:
@@ -312,38 +352,6 @@ class SynthPlot(object):
 			array= array[::yjump,::xjump]
 
 		return array
-
-	def chop_horizontal(self, array):
-
-		# set  vertical level in a list of arrays
-		if self.panel:
-			choped_array = [array[:,:,self.panel[0]] for i in range(6)]
-			self.zlevels = [self.zvalues[self.panel[0]] for i in range(6)]	
-		else:
-			choped_array = [array[:,:,i+1] for i in range(6)]
-			self.zlevels = [self.zvalues[i+1] for i in range(6)]
-			
-		return choped_array
-
-	def chop_vertical(self,array):
-
-		array=np.squeeze(array)
-		lats=self.shrink(self.lats,mask=self.maskLat)
-		lons=self.shrink(self.lons,mask=self.maskLon)
-
-		slices=[]
-		if self.sliceo=='zonal':		
-			for coord in self.slicez:
-				idx=self.find_nearest(lats,coord)
-				slices.append(array[:,idx,:])
-		elif self.sliceo=='meridional':
-			for coord in self.slicem:
-				idx=self.find_nearest(lons,-coord)
-				slices.append(array[idx,:,:])
-		# elif self.sliceo=='cross':
-		# elif self.sliceo=='along:
-
-		return slices
 
 	def find_nearest(self,array,value):
 
@@ -367,6 +375,81 @@ class SynthPlot(object):
 		b= all(x == array[0] for x in array)
 		return b
 
+	def make_terrain_mask(self):
+
+		''' working folders '''
+		home = expanduser("~")
+		dem_file=home+'/Github/RadarQC/merged_dem_38-39_123-124_extended.tif'
+		temp_file=home+'/Github/pythonx/temp.tif'
+		out_file=home+'/Github/pythonx/temp_resamp.tif'
+
+		''' boundaries'''
+		ulx = min(self.lons)
+		uly = max(self.lats)		
+		lrx = max(self.lons)
+		lry = min(self.lats)
+
+		''' number of verical gates '''
+		zvalues=self.axesval['z']		
+		levels=len(zvalues)
+
+		''' vertical gate resolution'''
+		res=(zvalues[1]-zvalues[0])*1000 # [m] 
+		
+		''' downsample DTM using synthesis axes '''
+		xvalues=self.axesval['x']
+		yvalues=self.axesval['y']
+		resampx_to=len(xvalues)
+		resampy_to=len(yvalues)
+
+		if isfile(temp_file):
+			os.remove(temp_file)
+
+		if isfile(out_file):
+			os.remove(out_file)
+
+		''' shrink original dtm '''
+		input_param = (ulx, uly, lrx, lry, dem_file, temp_file)
+		run_gdal = 'gdal_translate -projwin %s %s %s %s %s %s' % input_param
+		os.system(run_gdal)
+
+		''' resample shrinked dtm '''
+		input_param = (resampy_to,resampx_to,temp_file, out_file)
+		run_gdal = 'gdalwarp -ts %s %s -r near -co "TFW=YES" %s %s' % input_param
+		os.system(run_gdal)
+
+		''' store dtm in data '''
+		datafile = gdal.Open(out_file)
+		cols=datafile.RasterXSize
+		rows=datafile.RasterYSize
+		band=datafile.GetRasterBand(1)		
+		data=band.ReadAsArray(0,0,cols,rows)
+		datafile=None
+
+		''' creates 3D mask array '''
+		mask=np.zeros((rows,cols,levels))
+
+		'''Loop through each pixel of DTM and 
+		corresponding vertical column of mask'''
+		for ij in np.ndindex(mask.shape[:2]):
+
+			'''indices'''
+			i,j=ij
+			
+			'''index of maximum vertical gate to
+			filled with ones (e.g. presence of terrain);
+			works like floor function'''
+			n = int(np.ceil(data[i,j]/float(res)))
+			
+			''' fills verical levels '''
+			mask[i,j,0:n] = 1
+
+		dtm={	'data':data,
+				'mask':mask,
+				'extent':[ulx, lrx, lry,uly]}
+
+		return dtm
+
 	def horizontal_plane(self ,**kwargs):
 
 		field_array=kwargs['field']
@@ -375,9 +458,7 @@ class SynthPlot(object):
 		w_array=self.w_array
 
 		if self.mask:
-			# if self.var == 'SPH':
 			field_array.mask=w_array.mask
-
 			u_array.mask=w_array.mask
 			v_array.mask=w_array.mask
 
@@ -399,16 +480,65 @@ class SynthPlot(object):
 								label_mode = "L",
 								cbar_location = "top",
 								cbar_mode="single")
+	
+		dtm=self.make_terrain_mask()
+
+		dtm_data=dtm['data'] # 2D
+		dtm_array=dtm['mask'] # 3D
+
+		plt.figure()
+		plt.plot(self.coast['lon'], self.coast['lat'], color='r')		
+		plt.imshow(dtm_data,interpolation='none',cmap='terrain',
+								extent=dtm['extent'])
+		plt.colorbar()
+		plt.draw()
+
+		plt.figure()
+		plt.plot(self.coast['lon'], self.coast['lat'], color='r')		
+		foo=field_array[:,:,3]
+		extent=[self.lons]
+		plt.imshow(foo.T,interpolation='none',cmap='nipy_spectral',extent=extent,
+							vmin=-15,vmax=45,origin='lower')
+		plt.colorbar()
+		plt.draw()
 
 		if self.zoomOpt:
 			self.zoom_in(self.zoomOpt[0])
 			field_array=self.shrink(field_array,xmask=self.maskLon,ymask=self.maskLat)
 			u_array=self.shrink(u_array,xmask=self.maskLon,ymask=self.maskLat)
 			v_array=self.shrink(v_array,xmask=self.maskLon,ymask=self.maskLat)
+			# dtm_data=self.shrink(dtm_data,xmask=self.maskLon,ymask=self.maskLat)
+			dtm_array=self.shrink(dtm_array,xmask=self.maskLon,ymask=self.maskLat)
+
+		# extent=[self.lon_left,
+		# 		self.lon_right,
+		# 		self.lat_bot,
+		# 		self.lat_top ]
+
+		plt.figure()
+		plt.plot(self.coast['lon'], self.coast['lat'], color='r')
+		foo=dtm_data[self.maskLon][:,self.maskLat]
+		plt.imshow(foo,interpolation='none',cmap='terrain',extent=self.extent)
+		plt.colorbar()
+		plt.draw()
+
+		# plt.figure()
+		# plt.plot(self.coast['lon'], self.coast['lat'], color='r')		
+		# foo=field_array[:,:,3]
+		# plt.imshow(foo.T,interpolation='none',cmap='nipy_spectral',extent=extent,
+		# 					vmin=-15,vmax=45,origin='lower')
+		# plt.colorbar()
+		# plt.draw()
+
+		plt.figure()
+		plt.imshow(dtm_array[:,:,3],interpolation='none',vmin=0,vmax=1)
+		plt.colorbar()
+		plt.draw()
+
 
 		field_group = self.get_slices(field_array)
 		ucomp = self.get_slices(u_array)
-		vcomp = self.get_slices(v_array)
+		vcomp = self.get_slices(v_array)		
 
 		# creates iterator group
 		group=zip(plot_grids,self.zlevels,field_group,ucomp,vcomp)
@@ -416,13 +546,8 @@ class SynthPlot(object):
 		# make gridded plot
 		for g,k,field,u,v in group:
 
-			g.plot(self.loncoast, self.latcoast, color='b')
+			g.plot(self.coast['lon'], self.coast['lat'], color='b')
 			g.plot(self.flight_lon, self.flight_lat)		
-
-			extent=[self.lon_left,
-					self.lon_right,
-					self.lat_bot,
-					self.lat_top ]
 
 			im = g.imshow(field.T,
 							interpolation='none',
@@ -498,21 +623,30 @@ class SynthPlot(object):
 
 		self.minz=0.25
 		self.maxz=5.0
-		self.zmask= np.logical_and(self.zvalues >= self.minz, self.zvalues <= self.maxz)
+		zvalues=self.axesval['z']
+		self.zmask= np.logical_and(zvalues >= self.minz, zvalues <= self.maxz)
 
 		self.scale=20
 		if self.sliceo=='meridional':
-			self.extent_vertical=[self.lat_bot*self.scale,
-									self.lat_top*self.scale,
-									self.minz,
-									self.maxz ]
+			# self.extent_vertical=[self.lat_bot*self.scale,
+			# 						self.lat_top*self.scale,
+			# 						self.minz,
+			# 						self.maxz ]
+			self.extentv['lx']=self.extent['by']*self.scale
+			self.extentv['rx']=self.extent['ty']*self.scale
+			self.extentv['ty']=self.maxz
+			self.extentv['by']=self.minz
 			horizontalComp=vComp
 			geo_axis='Lon: '
 		elif self.sliceo=='zonal':
-			self.extent_vertical=[self.lon_left*self.scale,
-									self.lon_right*self.scale,
-									self.minz,
-									self.maxz ]
+			# self.extent_vertical=[self.lon_left*self.scale,
+			# 						self.lon_right*self.scale,
+			# 						self.minz,
+			# 						self.maxz ]
+			self.extentv['lx']=self.extent['lx']*self.scale
+			self.extentv['rx']=self.extent['rx']*self.scale
+			self.extentv['ty']=self.maxz
+			self.extentv['by']=self.minz									
 			horizontalComp=uComp
 			geo_axis='Lat: '
 			
@@ -608,23 +742,24 @@ class SynthPlot(object):
 
 		self.minz=0.25
 		self.maxz=5.0
-		self.zmask= np.logical_and(self.zvalues >= self.minz, self.zvalues <= self.maxz)
+		zvalues=self.axesval['z']
+		self.zmask= np.logical_and(zvalues >= self.minz, zvalues <= self.maxz)
 
 		self.scale=10
 		if  self.sliceo=='meridional':
-			self.extent_vertical=[self.lat_bot*self.scale,
-									self.lat_top*self.scale,
-									self.minz,
-									self.maxz ]
+			self.extentv['lx']=self.extent['by']*self.scale
+			self.extentv['rx']=self.extent['ty']*self.scale
+			self.extentv['ty']=self.maxz
+			self.extentv['by']=self.minz
 			hComp=vComp
 			geo_axis='Lon: '
 			n=len(self.slicem)
 			sliceVal=[x for pair in zip(self.slicem,self.slicem) for x in pair]
 		elif self.sliceo=='zonal':
-			self.extent_vertical=[self.lon_left*self.scale,
-									self.lon_right*self.scale,
-									self.minz,
-									self.maxz ]
+			self.extentv['lx']=self.extent['lx']*self.scale
+			self.extentv['rx']=self.extent['rx']*self.scale
+			self.extentv['ty']=self.maxz
+			self.extentv['by']=self.minz
 			hComp=uComp
 			geo_axis='Lat: '
 			n=len(self.slicez)
