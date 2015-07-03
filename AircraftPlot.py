@@ -39,10 +39,6 @@ class SynthPlot(object):
 		self.lons=None
 		self.extent={'lx':' ','rx':' ','by':' ','ty':' '}
 		self.extentv={'lx':' ','rx':' ','by':' ','ty':' '}
-		# self.lat_bot=None
-		# self.lat_top=None
-		# self.lon_left=None
-		# self.lon_right=None
 		self.coast={'lon':' ', 'lat': ' '}
 		self.flight_lat=None
 		self.flight_lon=None
@@ -67,7 +63,6 @@ class SynthPlot(object):
 		self.lons=synth.LON 
 		self.extent['lx']=min(synth.LON)
 		self.extent['rx']=max(synth.LON)
-
 
 	def set_coastline(self):
 
@@ -166,6 +161,16 @@ class SynthPlot(object):
 		elif self.slice_type == 'vertical':
 			slice_group = self.chop_vertical(array)
 			return slice_group
+
+	def get_extent(self):
+
+		''' return a list with extent '''
+		extent=[	self.extent['lx'],
+					self.extent['rx'],
+					self.extent['by'],
+					self.extent['ty']]		
+
+		return extent
 
 	def chop_horizontal(self, array):
 
@@ -383,7 +388,7 @@ class SynthPlot(object):
 		temp_file=home+'/Github/pythonx/temp.tif'
 		out_file=home+'/Github/pythonx/temp_resamp.tif'
 
-		''' boundaries'''
+		''' same boundaries as synthesis'''
 		ulx = min(self.lons)
 		uly = max(self.lats)		
 		lrx = max(self.lons)
@@ -420,33 +425,55 @@ class SynthPlot(object):
 
 		''' store dtm in data '''
 		datafile = gdal.Open(out_file)
+		geotransform=datafile.GetGeoTransform()
 		cols=datafile.RasterXSize
 		rows=datafile.RasterYSize
 		band=datafile.GetRasterBand(1)		
 		data=band.ReadAsArray(0,0,cols,rows)
 		datafile=None
 
-		''' creates 3D mask array '''
-		mask=np.zeros((rows,cols,levels))
+		# ''' creates 3D terrain mask array '''
+		# mask=np.zeros((rows,cols,levels))
 
-		'''Loop through each pixel of DTM and 
-		corresponding vertical column of mask'''
-		for ij in np.ndindex(mask.shape[:2]):
+		# '''Loop through each pixel of DTM and 
+		# corresponding vertical column of mask'''
+		# for ij in np.ndindex(mask.shape[:2]):
 
-			'''indices'''
-			i,j=ij
+		# 	'''indices'''
+		# 	i,j=ij
 			
-			'''index of maximum vertical gate to
-			filled with ones (e.g. presence of terrain);
-			works like floor function'''
-			n = int(np.ceil(data[i,j]/float(res)))
+		# 	'''index of maximum vertical gate to
+		# 	filled with ones (e.g. presence of terrain);
+		# 	works like floor function; altitude of mask 
+		# 	is zlevel[n-1] for n>0'''
+		# 	n = int(np.ceil(data[i,j]/float(res)))
 			
-			''' fills verical levels '''
-			mask[i,j,0:n] = 1
+		# 	''' fills verical levels '''
+		# 	mask[i,j,0:n] = 1
+
+		mask=[]
+
+		''' geographic axes '''
+		originX=geotransform[0]
+		originY=geotransform[3]
+		pixelW=geotransform[1]
+		pixelH=geotransform[5]
+
+		# print originX,originY,pixelW,pixelH
+
+		endingX=originX+cols*pixelW
+		endingY=originY+rows*pixelH
+
+		# print endingX, endingY
+
+		xg=np.linspace(originX,endingX,cols)
+		yg=np.linspace(originY,endingY,rows)
 
 		dtm={	'data':data,
 				'mask':mask,
-				'extent':[ulx, lrx, lry,uly]}
+				'extent':[ulx, lrx, lry,uly],
+				'xg':xg,
+				'yg':yg,}
 
 		return dtm
 
@@ -482,58 +509,14 @@ class SynthPlot(object):
 								cbar_mode="single")
 	
 		dtm=self.make_terrain_mask()
-
 		dtm_data=dtm['data'] # 2D
-		dtm_array=dtm['mask'] # 3D
+		# dtm_array=dtm['mask'] # 3D
 
-		plt.figure()
-		plt.plot(self.coast['lon'], self.coast['lat'], color='r')		
-		plt.imshow(dtm_data,interpolation='none',cmap='terrain',
-								extent=dtm['extent'])
-		plt.colorbar()
-		plt.draw()
-
-		plt.figure()
-		plt.plot(self.coast['lon'], self.coast['lat'], color='r')		
-		foo=field_array[:,:,3]
-		extent=[self.lons]
-		plt.imshow(foo.T,interpolation='none',cmap='nipy_spectral',extent=extent,
-							vmin=-15,vmax=45,origin='lower')
-		plt.colorbar()
-		plt.draw()
-
+		extent1=self.get_extent()
 		if self.zoomOpt:
 			self.zoom_in(self.zoomOpt[0])
-			field_array=self.shrink(field_array,xmask=self.maskLon,ymask=self.maskLat)
-			u_array=self.shrink(u_array,xmask=self.maskLon,ymask=self.maskLat)
-			v_array=self.shrink(v_array,xmask=self.maskLon,ymask=self.maskLat)
-			# dtm_data=self.shrink(dtm_data,xmask=self.maskLon,ymask=self.maskLat)
-			dtm_array=self.shrink(dtm_array,xmask=self.maskLon,ymask=self.maskLat)
 
-		# extent=[self.lon_left,
-		# 		self.lon_right,
-		# 		self.lat_bot,
-		# 		self.lat_top ]
-
-		plt.figure()
-		plt.plot(self.coast['lon'], self.coast['lat'], color='r')
-		foo=dtm_data[self.maskLon][:,self.maskLat]
-		plt.imshow(foo,interpolation='none',cmap='terrain',extent=self.extent)
-		plt.colorbar()
-		plt.draw()
-
-		# plt.figure()
-		# plt.plot(self.coast['lon'], self.coast['lat'], color='r')		
-		# foo=field_array[:,:,3]
-		# plt.imshow(foo.T,interpolation='none',cmap='nipy_spectral',extent=extent,
-		# 					vmin=-15,vmax=45,origin='lower')
-		# plt.colorbar()
-		# plt.draw()
-
-		plt.figure()
-		plt.imshow(dtm_array[:,:,3],interpolation='none',vmin=0,vmax=1)
-		plt.colorbar()
-		plt.draw()
+		extent2=self.get_extent()
 
 
 		field_group = self.get_slices(field_array)
@@ -542,6 +525,15 @@ class SynthPlot(object):
 
 		# creates iterator group
 		group=zip(plot_grids,self.zlevels,field_group,ucomp,vcomp)
+
+		plt.figure()
+		plt.plot(self.coast['lon'], self.coast['lat'], color='r')
+		plt.plot(self.flight_lon, self.flight_lat,color='r')		
+		plt.imshow(dtm_data,interpolation='none',cmap='terrain_r',vmin=500,vmax=501,extent=dtm['extent'])
+		plt.colorbar()
+		plt.xlim(extent2[0], extent2[1])
+		plt.ylim(extent2[2], extent2[3])				
+		plt.draw()
 
 		# make gridded plot
 		for g,k,field,u,v in group:
@@ -552,10 +544,12 @@ class SynthPlot(object):
 			im = g.imshow(field.T,
 							interpolation='none',
 							origin='lower',
-							extent=extent,
+							extent=extent1,
 							vmin=self.cmap_value[0],
 							vmax=self.cmap_value[1],
 							cmap=self.cmap_name)
+
+			g.contour(dtm['xg'],dtm['yg'],dtm_data)
 
 			if self.windb:
 				self.add_windvector(g,u.T,v.T)
@@ -563,8 +557,8 @@ class SynthPlot(object):
 			# if self.slicem or self.slicez:
 			self.add_slice_line(g)
 
-			g.set_xlim(extent[0], extent[1])
-			g.set_ylim(extent[2], extent[3])				
+			g.set_xlim(extent2[0], extent2[1])
+			g.set_ylim(extent2[2], extent2[3])				
 
 			g.grid(True, which = 'major',linewidth=1)
 			g.grid(True, which = 'minor',alpha=0.5)
