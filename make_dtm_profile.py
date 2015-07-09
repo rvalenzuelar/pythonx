@@ -1,4 +1,4 @@
-#!/home/rvalenzuela/miniconda/bin/python
+#!/usr/bin/env python
 
 # Raul Valenzuela
 # April, 2015
