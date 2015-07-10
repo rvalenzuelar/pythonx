@@ -11,7 +11,7 @@
 # June, 2015
 
 from os import getcwd
-from os.path import dirname, basename
+from os.path import dirname, basename, expanduser
 import sys
 import matplotlib.pyplot as plt
 import argparse
@@ -37,9 +37,11 @@ def main( args ):
 	print_global_atts = args.print_global_atts
 	print_axis = args.print_axis
 
+	home = expanduser("~")
+
 	"""base directory """
-	basedirectory = "/home/rvalenzuela/P3_v2/synth_test/"
-	stdtapedir = "/home/rvalenzuela/Github/correct_dorade_metadata/"
+	basedirectory = home+"/P3_v2/synth_test/"
+	stdtapedir = home+"/Github/correct_dorade_metadata/"
 
 	"""input folder """
 	mypath=dirname(filepath)
