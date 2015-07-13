@@ -2,8 +2,6 @@
 # http://stackoverflow.com/questions/24702868/python3-pillow-get-all-pixels-on-a-line
 # https://github.com/sachinruk/xiaolinwu/blob/master/xiaolinwu.m
 
-import math
-
 def xiaoline(x0, y0, x1, y1):
 
 	x=[]
@@ -27,6 +25,8 @@ def xiaoline(x0, y0, x1, y1):
 	# print ("dx,dy: %s,%s" % (dx,dy))
 	# print ("gradient: %s" % gradient)
 
+	width=3
+
 	""" handle first endpoint """
 	xend = round(x0)
 	yend = y0 + gradient * (xend - x0)
@@ -35,7 +35,7 @@ def xiaoline(x0, y0, x1, y1):
 	x.append(xpxl0)
 	y.append(ypxl0)	
 	x.append(xpxl0)
-	y.append(ypxl0+1)
+	y.append(ypxl0+width)
 	intery = yend + gradient
 
 	""" handles the second point """
@@ -46,14 +46,14 @@ def xiaoline(x0, y0, x1, y1):
 	x.append(xpxl1)
 	y.append(ypxl1)	
 	x.append(xpxl1)
-	y.append(ypxl1 + 1)
+	y.append(ypxl1 + width)
 
 	""" main loop """
-	for px in range(xpxl0 + 1 , xpxl1):
+	for px in range(xpxl0 + width , xpxl1):
 		x.append(px)
 		y.append(int(intery))
 		x.append(px)
-		y.append(int(intery) + 1)
+		y.append(int(intery) + width)
 		intery = intery + gradient;
 
 	if steep:
