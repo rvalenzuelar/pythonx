@@ -1,14 +1,17 @@
 import numpy as np 
-import demo_interpolate_pixels_along_line as interp 
+import demo_interpolate_pixels_along_line as interp
+# import interpolate_pixels_along_line as interp
 import matplotlib.pyplot as plt
 
 
 A=np.zeros((101,101))
 
-p0=(15,12)
-p1=(85,55)
+p0=(10,70)
+p1=(80,20)
 
 coords=interp.xiaoline(p0[0],p0[1],p1[0],p1[1])
+# coords=interp.interpolate_pixels_along_line(p0[0],p0[1],p1[0],p1[1])
+
 for c in coords:
 	A[c]=1
 
