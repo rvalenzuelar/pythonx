@@ -2,7 +2,9 @@
 # http://stackoverflow.com/questions/24702868/python3-pillow-get-all-pixels-on-a-line
 # https://github.com/sachinruk/xiaolinwu/blob/master/xiaolinwu.m
 
-def xiaoline(x0, y0, x1, y1):
+def xiaolin(x0, y0, x1, y1,**kwargs):
+
+	width=kwargs['width']
 
 	x=[]
 	y=[]
@@ -24,8 +26,6 @@ def xiaoline(x0, y0, x1, y1):
 	# print ("points(x0,y0,x1,y1): %s,%s,%s,%s" % (x0,y0,x1,y1))
 	# print ("dx,dy: %s,%s" % (dx,dy))
 	# print ("gradient: %s" % gradient)
-
-	width=3
 
 	""" handle first endpoint """
 	xend = round(x0)
