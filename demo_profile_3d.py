@@ -18,6 +18,8 @@ x, y = np.linspace(x0, x1, resolution), np.linspace(y0, y1, resolution)
 z=np.linspace(0,25,resolution)
 zz=np.array([z,]*resolution)
 
+print z
+print zz
 
 vi=np.empty([resolution,resolution])
 
@@ -26,11 +28,11 @@ for k in range(resolution):
 	vi[k,:]=foo
 
 
-print ("v shape: {0}".format(v.shape))
-print ("x shape: {0}".format(x.shape))
-print ("y shape: {0}".format(y.shape))
-print ("zz shape: {0}".format(zz.shape))
-print ("vi shape: {0}".format(vi.shape))
+# print ("v shape: {0}".format(v.shape))
+# print ("x shape: {0}".format(x.shape))
+# print ("y shape: {0}".format(y.shape))
+# print ("zz shape: {0}".format(zz.shape))
+# print ("vi shape: {0}".format(vi.shape))
 
 
 # #-- Plot...
