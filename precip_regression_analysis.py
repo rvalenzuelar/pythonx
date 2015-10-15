@@ -18,9 +18,10 @@ import os
 import time
 
 
+
 ''' set directory and input files '''
-# base_directory='/home/rvalenzuela/SURFACE'
-base_directory='/Users/raulv/Documents/SURFACE'
+base_directory='/home/rvalenzuela/SURFACE'
+# base_directory='/Users/raulv/Documents/SURFACE'
 print base_directory
 usr_case = raw_input('\nIndicate case number (i.e. 1): ')
 case='case'+usr_case.zfill(2)
@@ -89,20 +90,26 @@ if usr_case == '1':
 	reversedf = reversedf.append(s)
 	czd_precip = reversedf.ix[::-1]
 
-usr_st = raw_input('\nIndicate start date (i.e. YYYY,MM,DD,HH): ')
+case_dt={	'1':[1998,1],'2':[1998,1],'3':[2001,1],
+			'4':[2001,1],'5':[2001,2],'6':[2001,2],
+			'7':[2001,2],'8':[2003,1],'9':[2003,1],
+			'10':[2003,2],'11':[2004,1],'12':[2004,2],
+			'13':[2004,2],'14':[2004,2]}
+
+usr_st = raw_input('\nIndicate start date (i.e. DD,HH): ')
 usr_dt = map(int, usr_st.split(','))
-st_dt = datetime(usr_dt[0],usr_dt[1],usr_dt[2],usr_dt[3])
+st_dt = datetime(case_dt[usr_case][0],case_dt[usr_case][1],usr_dt[0],usr_dt[1])
 st=bby_precip.index.searchsorted(st_dt)
 
-usr_en = raw_input('\nIndicate first end date [YYYY,MM,DD,HH]: ')
+usr_en = raw_input('\nIndicate first end date (i.e. DD,HH: ')
 usr_dt = map(int, usr_en.split(','))
-en_dt = datetime(usr_dt[0],usr_dt[1],usr_dt[2],usr_dt[3])
+en_dt = datetime(case_dt[usr_case][0],case_dt[usr_case][1],usr_dt[0],usr_dt[1])
 en=bby_precip.index.searchsorted(en_dt+timedelta(hours=1))
 
-usr_la = raw_input('\nIndicate last end date [YYYY,MM,DD,HH]: ')
+usr_la = raw_input('\nIndicate last end date (i.e. DD,HH): ')
 if usr_la:
 	usr_dt = map(int, usr_la.split(','))
-	la_dt = datetime(usr_dt[0],usr_dt[1],usr_dt[2],usr_dt[3])
+	la_dt = datetime(case_dt[usr_case][0],case_dt[usr_case][1],usr_dt[0],usr_dt[1])
 	la=bby_precip.index.searchsorted(la_dt+timedelta(hours=1))	
 else:
 	la=None
@@ -115,9 +122,9 @@ Rsq1=result1.rsquared
 m1=result1.params[0]
 obs1=int(result1.nobs)
 
-xr=np.linspace(-2,17,20)
+xr=np.linspace(-2,25,10)
 fig,ax=plt.subplots()
-ax.plot(range(-1,17),range(-1,17),color=(0.7,0.7,0.7),lw=3)
+ax.plot(range(-1,25),range(-1,25),color=(0.7,0.7,0.7),lw=3)
 ax.plot(xr,m1*xr,color='blue',lw=1.5)
 ax.scatter(bby1,czd1,marker='o',s=55,color='blue',facecolor='none',zorder=10)
 m1txt="{:3.2}".format(m1)
@@ -126,7 +133,7 @@ obs1txt="{:d}".format(obs1)
 datetxt=st_dt.strftime("%b-%d %H")+"UTC to "+en_dt.strftime("%b-%d %H")+"UTC"
 regtext1='Y='+m1txt+'X\nR-sqr='+r1txt+'\nn='+obs1txt
 text1=datetxt+'\n'+regtext1
-ax.text(0.6,0.40,text1,color='blue',weight='bold',transform=ax.transAxes)
+ax.text(0.98,0.20,text1,color='blue',horizontalalignment='right',weight='bold',transform=ax.transAxes)
 ax.text(0.1,0.9,st_dt.strftime("Y: %Y"),color='black',weight='bold',transform=ax.transAxes)
 
 if la:
@@ -148,10 +155,11 @@ if la:
 	regtext2='Y='+m2txt+'X\nR-sqr='+r2txt+'\nn='+obs2txt
 	datetxt=en_dt2.strftime("%b-%d %H")+"UTC to "+la_dt.strftime("%b-%d %H")+"UTC"
 	text2=datetxt+'\n'+regtext2
-	ax.text(0.6,0.25,text2,color='red',weight='bold',transform=ax.transAxes)
+	ax.text(0.98,0.04,text2,color='red',horizontalalignment='right',weight='bold',transform=ax.transAxes)
 
-ax.set_xlim([-1,16])
-ax.set_ylim([-1,16])
+ax.set_xlim([-1,22])
+ax.set_ylim([-1,22])
+ax.set_aspect('equal')
 ax.set_xlabel('Rain rate BBY [mm h-1]')
 ax.set_ylabel('Rain rate CZD [mm h-1]')
 plt.grid(True)
