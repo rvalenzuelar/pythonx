@@ -13,48 +13,15 @@ from netCDF4 import Dataset
 
 
 def main():
-	# x,y = np.meshgrid(range(-25,25),range(-25,25))
 
-	# u = np.sin(0.9*x)
-	# v = np.cos(0.1*y)
+	# base_dir='/Users/raulv/Documents/P3/synth/'
+	base_dir='/home/rvalenzuela/P3_v2/synth_prod/'
 
-	# ''' Take the fourier transform of the image. '''
-	# F1 = fftpack.fft2(u)
-
-	# ''' Now shift the quadrants around so that low spatial frequencies are in
-	#  the center of the 2D fourier transformed image.'''
-	# F2 = fftpack.fftshift( F1 )
-
-	# ''' Calculate a 2D power spectrum '''
-	# psd2D = np.abs( F2 )**2
-
-	# ''' Calculate the azimuthally averaged 1D power spectrum '''
-	# psd1D = azimuthalAverage(psd2D)
-
-
-	# fig,ax=plt.subplots()
-	# ax.imshow(u)
-	# plt.axis('equal')
-
-	# fig,ax=plt.subplots()
-	# ax.imshow(psd2D)
-	# plt.axis('equal')
-
-	# fig,ax=plt.subplots()
-	# ax.semilogy(psd1D)
-	# # plt.axis('equal')
-
-	# fig,ax=plt.subplots()
-	# ax.quiver(u,v,scale=20)
-	# plt.axis('equal')
-
-	# plt.show()
-
-	case=3
+	case=7
+	leg=4
 	scase=str(case).zfill(2)
-	leg=2
 	sleg=str(leg).zfill(2)
-	synthfile='/Users/raulv/Documents/P3/synth/c'+scase+'/leg'+sleg+'.cdf'
+	synthfile=base_dir+'c'+scase+'/leg'+sleg+'.cdf'
 	U = read_synth(synthfile,'F2U')
 	V = read_synth(synthfile,'F2V')
 
@@ -174,5 +141,44 @@ def read_synth(synthfile, var):
 	synth.close()
 
 	return array    
+
+def read_field():
+	
+	x,y = np.meshgrid(range(-25,25),range(-25,25))
+
+	u = np.sin(0.9*x)
+	v = np.cos(0.1*y)
+
+	''' Take the fourier transform of the image. '''
+	F1 = fftpack.fft2(u)
+
+	''' Now shift the quadrants around so that low spatial frequencies are in
+	 the center of the 2D fourier transformed image.'''
+	F2 = fftpack.fftshift( F1 )
+
+	''' Calculate a 2D power spectrum '''
+	psd2D = np.abs( F2 )**2
+
+	''' Calculate the azimuthally averaged 1D power spectrum '''
+	psd1D = azimuthalAverage(psd2D)
+
+
+	fig,ax=plt.subplots()
+	ax.imshow(u)
+	plt.axis('equal')
+
+	fig,ax=plt.subplots()
+	ax.imshow(psd2D)
+	plt.axis('equal')
+
+	fig,ax=plt.subplots()
+	ax.semilogy(psd1D)
+	# plt.axis('equal')
+
+	fig,ax=plt.subplots()
+	ax.quiver(u,v,scale=20)
+	plt.axis('equal')
+
+	plt.show()	
 
 main()    
