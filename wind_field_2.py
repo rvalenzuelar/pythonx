@@ -13,84 +13,47 @@ from netCDF4 import Dataset
 
 
 def main():
-	# x,y = np.meshgrid(range(-25,25),range(-25,25))
-
-	# u = np.sin(0.9*x)
-	# v = np.cos(0.1*y)
-
-	# ''' Take the fourier transform of the image. '''
-	# F1 = fftpack.fft2(u)
-
-	# ''' Now shift the quadrants around so that low spatial frequencies are in
-	#  the center of the 2D fourier transformed image.'''
-	# F2 = fftpack.fftshift( F1 )
-
-	# ''' Calculate a 2D power spectrum '''
-	# psd2D = np.abs( F2 )**2
-
-	# ''' Calculate the azimuthally averaged 1D power spectrum '''
-	# psd1D = azimuthalAverage(psd2D)
-
-
-	# fig,ax=plt.subplots()
-	# ax.imshow(u)
-	# plt.axis('equal')
-
-	# fig,ax=plt.subplots()
-	# ax.imshow(psd2D)
-	# plt.axis('equal')
-
-	# fig,ax=plt.subplots()
-	# ax.semilogy(psd1D)
-	# # plt.axis('equal')
-
-	# fig,ax=plt.subplots()
-	# ax.quiver(u,v,scale=20)
-	# plt.axis('equal')
-
-	# plt.show()
 
 	case=3
 	scase=str(case).zfill(2)
-	leg=2
+	leg=3
 	sleg=str(leg).zfill(2)
-	synthfile='/Users/raulv/Documents/P3/synth/c'+scase+'/leg'+sleg+'.cdf'
+	# synthfile='/Users/raulv/Documents/P3/synth/c'+scase+'/leg'+sleg+'.cdf'
+	synthfile='/home/raul/P3/synth/c'+scase+'/leg'+sleg+'.cdf'
 	U = read_synth(synthfile,'F2U')
 	V = read_synth(synthfile,'F2V')
+	Z = read_synth(synthfile,'z')
 
-	level = 4
+	level = 6
 	Usp2D = make_2d_spectrum(U[:,:,level])
 	Usp1D = make_1d_spectrum(Usp2D)
 
 	Vsp2D = make_2d_spectrum(V[:,:,level])
 	Vsp1D = make_1d_spectrum(Vsp2D)
 
+	SPD=np.sqrt(U**2+V**2)
+	SPDsp2D = make_2d_spectrum(SPD[:,:,level])
+	SPDsp1D = make_1d_spectrum(SPDsp2D)
+
 	print U.shape
 	print Usp2D.shape
 	print Usp1D.shape
 
-	# fig,ax=plt.subplots(1,2)
-	# ax[0].imshow(U[:,:,level],interpolation='none')
-	# ax[1].imshow(V[:,:,level],interpolation='none')
-	# ax[0].set_title('U')
-	# ax[1].set_title('V')
-	# plt.suptitle('wind components')
-	# plt.tight_layout()
 
-	# fig,ax=plt.subplots(1,2)
-	# ax[0].imshow(Usp2D,interpolation='none')
-	# ax[1].imshow(Vsp2D,interpolation='none')
-	# ax[0].set_title('U')
-	# ax[1].set_title('V')
+	
 
-	fig,ax=plt.subplots(1,2)
+	fig,ax=plt.subplots(1,3,sharey=True)
 	ax[0].semilogy(Usp1D)
 	ax[1].semilogy(Vsp1D)
+	ax[2].semilogy(Vsp1D)
 	ax[0].set_title('U')
 	ax[1].set_title('V')
+	ax[2].set_title('SPD')
 	ax[0].set_ylim([1e10,1e16])
 	ax[1].set_ylim([1e10,1e16])
-	plt.suptitle('power spectrum case '+scase+' leg '+sleg)
+	ax[2].set_ylim([1e10,1e16])
+	alt='{:3.2f}'.format(Z[level])
+	plt.suptitle('Power spectrum case '+scase+' leg '+sleg+' altitude: '+alt+'km MSL')
 	
 	plt.show(block=False)
 	
