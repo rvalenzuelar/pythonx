@@ -10,31 +10,58 @@ import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 
-from mpl_toolkits.basemap import Basemap, cm
+from mpl_toolkits.basemap import Basemap, cm, shiftgrid
+from datetime import datetime
 
-hfile='/home/raul/1B01.19971231.00527.7.h5'
+
+base_directory = '/home/raul/'
+
+product='1B01'
+# product='1C21'
+
+# hfile=base_directory+product+'.19971231.00527.7.h5'
+hfile=base_directory+product+'.19971231.00528.7.h5'
+# hfile=base_directory+product+'.19971223.00405.7.h5'
+# hfile=base_directory+product+'.19971223.00405.7.1.h5'
+
 f = h5py.File(hfile, 'r')
 
 swath=f['Swath']
-
 lats=swath['Latitude'][()]
 lons=swath['Longitude'][()]
-scantime=swath['ScanTime']
-calcounts=swath['calCounts']
+
+
+lon1D = np.amax(lons,axis=1)
+idxsub = np.where((lon1D>-90)&(lon1D<-60))
+st=idxsub[0][0]
+en=idxsub[0][-1]
+
 channels=swath['channels']
+data=channels[st:en,:,4]
+print np.amin(data)
+data[data<=-9999.]=np.nan
+print np.amin(data)
 
+scantime=swath['ScanTime']
+Yr=scantime['Year'][0]
+Mo=scantime['Month'][0]
+Dy=scantime['DayOfMonth'][0]
+Hr=scantime['Hour'][st:en]
+Mn=scantime['Minute'][st:en]
+date_beg=datetime(Yr,Mo,Dy,Hr[0],Mn[0],0)
+date_end=datetime(Yr,Mo,Dy,Hr[-1],Mn[-1],0)
 
-data=channels[:,:,4]
-# data[data==-9999.90039062]=np.nan
 
 ''' create figure and axes instances  '''
-fig = plt.figure(figsize=(8,8))
+fig = plt.figure(figsize=(8,5))
 ax = fig.add_axes([0.1,0.1,0.8,0.8])
 
 ''' create eq distance cylindrival Basemap instance '''
 m = Basemap(projection='cyl',\
 			llcrnrlat=-40,urcrnrlat=-20,\
             llcrnrlon=-90,urcrnrlon=-60,\
+            # llcrnrlat=-90,urcrnrlat=90,\
+            # llcrnrlon=-180,urcrnrlon=180,\
             resolution='l')
 
 
@@ -58,7 +85,13 @@ m.drawmeridians(meridians,labels=[0,0,0,1],fontsize=10)
 # cbar = m.colorbar(cs,location='bottom',pad="5%")
 
 ''' colormesh '''
-m.pcolormesh(lons, lats, data, latlon=True,cmap='gray')
+m.pcolormesh(lons[st:en,:], lats[st:en,:], data, latlon=True,cmap='gray')
 cb = m.colorbar()
+
+plt.suptitle('Date: '+date_beg.strftime('%Y-%b-%d')\
+			+'\nTime: '+date_beg.strftime('%H:%M')+'-'\
+			+date_end.strftime('%H:%M')+' UTC')
+
+
 
 plt.show()
