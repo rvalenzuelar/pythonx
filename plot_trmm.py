@@ -16,8 +16,8 @@ from datetime import datetime
 
 base_directory = '/home/raul/'
 
-product='1B01'
-# product='1C21'
+# product='1B01'
+product='1C21'
 
 # hfile=base_directory+product+'.19971231.00527.7.h5'
 hfile=base_directory+product+'.19971231.00528.7.h5'
