@@ -24,8 +24,8 @@ def main():
 
 	# base_dir='/Users/raulv/Documents/P3/synth/'
 
-	case=7
-	leg=5
+	case=3
+	leg=14
 	scase=str(case).zfill(2)
 	sleg=str(leg).zfill(2)
 	synthfile=base_dir+'c'+scase+'/leg'+sleg+'.cdf'
@@ -34,17 +34,21 @@ def main():
 	V = read_synth(synthfile,'F2V')
 	Z = read_synth(synthfile,'z')
 
-	level = 4
+	level = 6
 	# plot_spectrum(U,V,Z,level,scase,sleg)
 	# plot_fields(U,V,Z,level,scase,sleg)
 	
 
-	synth={3:[1,3,5,12,14,16], 7:[3,4,5,6]}
+	# synth={3:[1,3,5,12,14,16], 7:[3,4,5,6]}
+	# synth={5:[23,32], 7:[3,4,5,6]}
+	# synth={3:[1,3,5,12,14,16], 5:[23,32]}
+	# synth={4:[10,11], 7:[3,4,5,6]}
+	synth={ 4:[10,11], 5:[23,32] }
 	plot_profile_variance_wind(synth)
 	plot_profile_variance_dbz(synth)
 	# plot_profile_valid_gates(synth,'wind')
 	# plot_profile_valid_gates(synth,'dbz')
-
+	# plot_profile_TKE_wind(synth)
 			
 	plt.show(block=False)
 
@@ -73,10 +77,44 @@ def plot_profile_variance_wind(synth):
 			label='Case: '+scase+' Leg: '+sleg
 			ax.plot(x,y,'-',label=label,color=colors[c])
 			ax.set_ylim([0,4])
+			ax.set_xlim([0,700])
 			ax.set_xlabel('Wind direction variance [deg^2]')
 			ax.set_ylabel('Altitude MSL [km]')
 			c+=1
 	plt.suptitle('Spatial variance at P3 synth levels ')			
+	plt.draw()
+	plt.legend()
+
+def plot_profile_TKE_wind(synth):
+
+	fig,ax=plt.subplots()
+	colors=get_colors(synth)
+	c=0	
+	for key,value in synth.iteritems():
+		for v in value:
+			scase=str(key).zfill(2)
+			sleg=str(v).zfill(2)
+			synthfile=base_dir+'c'+scase+'/leg'+sleg+'.cdf'
+			U = read_synth(synthfile,'F2U')
+			V = read_synth(synthfile,'F2V')
+			Z = read_synth(synthfile,'z')
+			x=[]
+			y=[]
+			for n,z in enumerate(Z[1:15]):
+				u=U[:,:,n+1]
+				v=V[:,:,n+1]
+				u_var=np.nanvar(u)
+				v_var=np.nanvar(v)
+				TKE=(u_var+v_var)/2.
+				x.append(TKE)
+				y.append(z)
+			label='Case: '+scase+' Leg: '+sleg
+			ax.plot(x,y,'-',label=label,color=colors[c])
+			ax.set_ylim([0,4])
+			ax.set_xlabel('TKE [m2 s^-2]')
+			ax.set_ylabel('Altitude MSL [km]')
+			c+=1
+	plt.suptitle('Spatial TKE at P3 synth levels ')			
 	plt.draw()
 	plt.legend()
 
@@ -96,6 +134,7 @@ def plot_profile_variance_dbz(synth):
 			y=[]
 			for n,z in enumerate(Z[1:15]):
 				dbz=DBZ[:,:,n+1]
+				# dbz[dbz<15]=np.nan
 				x.append(np.nanvar(dbz))
 				# zz=10**(dbz/10.)
 				# x.append(np.nanvar(zz)) # similar than dbz but in linear scale
@@ -104,6 +143,7 @@ def plot_profile_variance_dbz(synth):
 			label='Case: '+scase+' Leg: '+sleg
 			ax.plot(x,y,'-',label=label,color=colors[c])
 			ax.set_ylim([0,4])
+			ax.set_xlim([0,70])
 			ax.set_xlabel('Reflectivity variance [dBZ^2]')
 			ax.set_ylabel('Altitude MSL [km]')
 			c+=1
@@ -152,9 +192,10 @@ def get_colors(synth):
 	# p=[0,1,2]
 	colors=[]
 	for n,k in enumerate(synth):
-		cs= sns.color_palette(p[n],20,desat=.5)
+		cs= sns.color_palette(p[n],45,desat=0.5)
+		cs=cs[15:]		
 		for x,v in enumerate(synth[k]):
-			colors.append(cs[(x*2)+5])
+			colors.append(cs[x*5])
 	return colors
 
 def plot_fields(U,V,Z,level,scase,sleg):
