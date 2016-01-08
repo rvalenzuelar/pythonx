@@ -10,32 +10,46 @@
 
 import sys
 import os
+import argparse
 
-def main(arg):
+def main():
 
-	if arg[1] in ['-h', '--help']:
-		usage()
-	else:
-		inarg = sys.argv[1:]
-		paths=[]
-		for n,s in enumerate(inarg):
-			if n == 0:
-				paths.append(s)
-			else:
-				paths.append('./'+paths[0]+'/'+s+'_cor')
-				paths.append('./'+paths[0]+'/'+s+'_all')
+	args=parse_inargv()
 
-		print ' Making directory paths:'
-		for p in paths[1:]:
-			print p
-			os.makedirs(p)
-		print ' Done\n'
+	basedir= args.basedir[0]
+	subdirs= args.subdirs
+	suffix= args.suffix[0]
+
+	paths=[]
+	for s in subdirs:
+		paths.append('./'+basedir+'/'+s+suffix)
+
+	print ' Making directory paths:'
+	for p in paths:
+		print p
+		os.makedirs(p)
+	print ' Done\n'
+
+def parse_inargv():
+
+	parser = argparse.ArgumentParser(	description=usage() )
+
+	parser.add_argument('-d', nargs=1, type=str, dest='basedir')
+	parser.add_argument('-s', nargs='+', type=str, dest='subdirs')
+	parser.add_argument('-u', nargs=1, type=str, dest='suffix', default=[''])
+
+	args = parser.parse_args()
+
+	return args
+
 
 def usage():
 	s='''
 	Usage:
 
-	$ make_dir_structure.py c01 leg01 ...legNN
+	$ make_dir_structure [dir] [subdir1] ... [subdirn] [suffix]
+
+	$ make_dir_structure.py c01 leg01 leg02 leg03 _cor
 	'''
 
-main(sys.argv)
+main()
