@@ -14,6 +14,7 @@ import fnmatch
 import sys
 import os
 import shutil
+import matplotlib.pyplot as plt
 
 from glob import glob
 
@@ -25,13 +26,17 @@ def main(args):
 	elif args[1] in ['rhi', 'RHI']:
 		if args[2] == 'count':
 			count(scan_mode='rhi')
-		elif args[2] == 'make_dir':
+		elif args[2] == 'mkdir':
 			make_dir_and_copy(args[3], scan_mode='rhi')
 	elif args[1] in ['ppi', 'PPI']:
 		if args[2] == 'count':
 			count(scan_mode='ppi')
-		elif args[2] == 'make_dir':
-			make_dir_and_copy(args[3], scan_mode='ppi')		
+		elif args[2] == 'mkdir':
+			make_dir_and_copy(args[3], scan_mode='ppi')
+	elif args[1] in ['plot']:
+		' implement range-height plot'
+		plt.plot([3,5],[3,10])
+		plt.show()
 
 def make_dir_and_copy(scan,scan_mode):
 
@@ -125,8 +130,8 @@ def usage():
 	options:
 		ppi count
 		rhi count
-		rhi make_dir [azimuth]
-		ppi make_dir [elevation]
+		rhi mkdir [azimuth]
+		ppi mkdir [elevation]
 
 	"""
 	print S
