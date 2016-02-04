@@ -47,9 +47,12 @@ def usage():
 	s='''
 	Usage:
 
-	$ make_dir_structure [dir] [subdir1] ... [subdirn] [suffix]
+	$ make_dir_structure -d [dir] -s [subdir1] ... [subdirn] -u [suffix]
 
-	$ make_dir_structure.py c01 leg01 leg02 leg03 _cor
+	Example:
+	$ make_dir_structure.py -d c01 -s leg01 leg02 
+	$ make_dir_structure.py -d c01 -s leg01 leg02 -u _cor
+
 	'''
 
 main()

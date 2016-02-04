@@ -15,7 +15,9 @@ import sys
 import os
 import shutil
 import matplotlib.pyplot as plt
+import numpy as np
 
+from datetime import datetime
 from glob import glob
 
 
@@ -33,10 +35,11 @@ def main(args):
 			count(scan_mode='ppi')
 		elif args[2] == 'mkdir':
 			make_dir_and_copy(args[3], scan_mode='ppi')
-	elif args[1] in ['plot']:
+	elif args[1] in ['beam_hgt']:
 		' implement range-height plot'
-		plt.plot([3,5],[3,10])
-		plt.show()
+		# plt.plot([3,5],[3,10])
+		# plt.show()
+		beam_hgt(args[2])
 
 def make_dir_and_copy(scan,scan_mode):
 
@@ -85,37 +88,99 @@ def count(scan_mode=None):
 		swpfiles=fnmatch.filter(swpfiles,'*_PPI_*')
 	elif scan_mode == 'rhi':
 		swpfiles=fnmatch.filter(swpfiles,'*_RHI_*')
-
+	# print swpfiles
 	' list of scan mode in directory '
 	scans=[]
 	for swp in swpfiles:
+		
 		split=swp.split('.')
+		
 		if scan_mode == 'ppi':
-			intpart=split[4]
-			decpart=split[5][0:1]
-			s=intpart+'.'+decpart
+			elev_intpart=split[4]
+			elev_decpart=split[5][0:1]
+			angle=elev_intpart+'.'+elev_decpart
 		elif scan_mode == 'rhi':
-			s=split[4]
-		if s not in scans:
-			scans.append(s)
+			angle=split[4]
 
-	' count of each scan mode '
+		if angle not in scans:
+			scans.append(angle)
+
+	' count of each scan mode and get beg and end times '
 	scount=[]
+	begs=[]
+	ends=[]
 	for s in scans:
 		if scan_mode == 'ppi':
 			filtered=fnmatch.filter(swpfiles,'*.'+s+'_*')
 		elif scan_mode == 'rhi':
 			filtered=fnmatch.filter(swpfiles,'*.'+s+'.*')
-		scount.append(len(filtered))
-	
-	merged=zip(scans,scount)
+		count=len(filtered)
+		scount.append(count)
+		beg,end=get_beg_end_times(filtered)
+		begs.append(beg)
+		ends.append(end)
+
+	merged=zip(scans,scount,begs,ends)
 	merged.sort(key=lambda tup:tup[1])
-	for a,c in merged:
+	ppi_strfmt='elev={:>4}, count={:>3}, beg={:%Y-%m-%d %H:%M:%S}, end={:%Y-%m-%d %H:%M:%S}'
+	rhi_strfmt='az={:>3}, count={:g}, beg={:%Y-%m-%d %H:%M:%S}, end={:%Y-%m-%d %H:%M:%S}'
+	for angle,count, be, en in merged:
 		if scan_mode == 'ppi':
-			print 'elev={:>3}, count={:g}'.format(a,c)
+			print ppi_strfmt.format(angle,count, be, en)
 		elif scan_mode == 'rhi':
-			print 'az={:>3}, count={:g}'.format(a,c)
+			print rhi_strfmt.format(angle,count, be, en)
 	return scans
+
+def get_beg_end_times(file_list):
+
+	file_list.sort()
+	raw_beg=file_list[0].split('.')[1][1:]
+	raw_end=file_list[-1].split('.')[1][1:]
+
+	fmt='%y%m%d%H%M%S'
+	beg=datetime.strptime(raw_beg, fmt)
+	end=datetime.strptime(raw_end, fmt)
+
+	return beg, end
+
+def beam_hgt(target_elev):
+	
+	H=[]
+	ranges =  range(0,101)
+	ranges = [float(r) for r in ranges]
+	elev_angles = range(0,11) # [deg]
+	vert_beam_width=1. # [deg]
+
+	fig,ax=plt.subplots()
+	
+	te= float(target_elev)
+	el=[float(te)]*len(ranges)
+	H=map(beamhgt_stdrefraction, ranges,el)
+	ax.plot(ranges,H,color='r')
+	for e in elev_angles: 	
+		el=[float(e)]*len(ranges)
+		H=map(beamhgt_stdrefraction, ranges,el)
+		ax.plot(ranges,H,color='b')
+		ax.text(ranges[50],H[50],str(e))
+	ax.set_xticks(np.arange(0,100,10))
+	ax.set_yticks(np.arange(0,12,0.5))
+	ax.set_ylim([0,10])
+	ax.set_xlim([0,100])
+	ax.set_xlabel('range [km]')
+	ax.set_ylabel('beam height AGL [km]')
+	plt.grid(True)
+	plt.show()
+
+def beamhgt_stdrefraction(r,el):
+	
+	' From Rinehart p. 62'
+	
+	ER=6371 # [km] Earth Radius
+	R=(4/3.)*ER
+	Ho=0 # [km] radar's altitude
+	# print [r,el]
+	return np.sqrt(r*r + R*R + 2*r*R*np.sin(el * np.pi/180.))-R+Ho
+
 
 
 def usage():
