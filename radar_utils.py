@@ -27,15 +27,21 @@ def main(args):
 		usage()
 	elif args[1] in ['rhi', 'RHI']:
 		if args[2] == 'count':
-			count(scan_mode='rhi')
+			if len(args[1:]) == 2:
+				count(scan_mode='rhi')
+			elif args[3] == 'sort':
+				count(scan_mode='rhi', sort=True)
 		elif args[2] == 'mkdir':
 			make_dir_and_copy(args[3], scan_mode='rhi')
 	elif args[1] in ['ppi', 'PPI']:
 		if args[2] == 'count':
-			count(scan_mode='ppi')
+			if len(args[1:]) == 2:
+				count(scan_mode='ppi')
+			elif args[3] == 'sort':
+				count(scan_mode='ppi', sort=True)
 		elif args[2] == 'mkdir':
 			make_dir_and_copy(args[3], scan_mode='ppi')
-	elif args[1] in ['beam_hgt']:
+	elif args[1] in ['beam_plot']:
 		' implement range-height plot'
 		# plt.plot([3,5],[3,10])
 		# plt.show()
@@ -81,7 +87,7 @@ def make_dir_and_copy(scan,scan_mode):
 				shutil.copy(f,azdir)
 			print ' Done\n'
 
-def count(scan_mode=None):
+def count(scan_mode=None, sort=False):
 
 	swpfiles=glob('swp*')
 	if scan_mode == 'ppi':
@@ -120,15 +126,19 @@ def count(scan_mode=None):
 		begs.append(beg)
 		ends.append(end)
 
+	scans=[str(s).zfill(3) for s in scans]
 	merged=zip(scans,scount,begs,ends)
-	merged.sort(key=lambda tup:tup[1])
+	if sort:
+		merged.sort(key=lambda tup:tup[0])
+	else:
+		merged.sort(key=lambda tup:tup[1])
 	ppi_strfmt='elev={:>4}, count={:>3}, beg={:%Y-%m-%d %H:%M:%S}, end={:%Y-%m-%d %H:%M:%S}'
-	rhi_strfmt='az={:>3}, count={:g}, beg={:%Y-%m-%d %H:%M:%S}, end={:%Y-%m-%d %H:%M:%S}'
+	rhi_strfmt='az={:>3}, count={:>3}, beg={:%Y-%m-%d %H:%M:%S}, end={:%Y-%m-%d %H:%M:%S}'
 	for angle,count, be, en in merged:
 		if scan_mode == 'ppi':
 			print ppi_strfmt.format(angle,count, be, en)
 		elif scan_mode == 'rhi':
-			print rhi_strfmt.format(angle,count, be, en)
+			print rhi_strfmt.format(angle.lstrip('0'),count, be, en)
 	return scans
 
 def get_beg_end_times(file_list):
@@ -194,9 +204,12 @@ def usage():
 
 	options:
 		ppi count
+		ppi count sort (sort by elevation)
 		rhi count
+		rhi count sort (sort by azimuth)
 		rhi mkdir [azimuth]
 		ppi mkdir [elevation]
+		beam_plot [elevation]
 
 	"""
 	print S
