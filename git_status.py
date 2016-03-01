@@ -14,7 +14,9 @@ import os
 import git
 from ctext import ctext
 
-GITPATH = '/home/rvalenzuela/Github'
+HOME = os.path.expanduser('~')
+
+GITPATH = HOME + '/Github'
 DIRS = os.listdir(GITPATH)
 DIRS.sort()
 
