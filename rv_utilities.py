@@ -53,3 +53,20 @@ def format_yaxis(ax, hgt, **kwargs):
     ytlabel = ['{:2.2f}'.format(y) for y in ys]
     ax.set_yticks(new_yticks + 0.5)
     ax.set_yticklabels(ytlabel)
+
+
+def pandas2stack(pandas_array):
+    ''' converts pandas dataframe containing
+    t rows of 2D (m x n) arrays to a numpy 3D
+    array of dimensions (m x n x t) '''
+    import numpy as np
+    narrays = pandas_array.shape[0]
+    for n in range(narrays):
+        a = pandas_array.iloc[[n]].values[0]
+        if isinstance(a, list):
+            a = np.array(a)
+        if n == 0:
+            A = a.copy()
+        else:
+            A = np.dstack((A, a))
+    return A
