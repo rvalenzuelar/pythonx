@@ -21,12 +21,21 @@ DIRS = os.listdir(GITPATH)
 DIRS.sort()
 
 for D in DIRS:
-    currentdir = ctext(GITPATH + '/' + D)
-    g = git.cmd.Git(currentdir.text)
-    status = g.status()
-    if 'nothing to commit' in status:
-        print currentdir.green()
-    else:
-        print currentdir.red()
-    print status
+    ''' run only for unhidden folders 
+    '''
+    if not D.startswith('.'):
+        currentdir = ctext(GITPATH + '/' + D)
+        g = git.cmd.Git(currentdir.text)
+        ''' if directory is not git repo then
+            pass the error
+        '''
+        try:
+            status = g.status()
+            if 'nothing to commit' in status:
+                print currentdir.green()
+            else:
+                print currentdir.red()
+            print status
+        except:
+            pass
 print ''
