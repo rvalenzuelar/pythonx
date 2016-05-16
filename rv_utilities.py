@@ -1,5 +1,5 @@
 '''
-    A number of utility functions
+    Utility functions
 
     Raul Valenzuela
     raul.valenzuela@colorado.edu
@@ -70,3 +70,44 @@ def pandas2stack(pandas_array):
         else:
             A = np.dstack((A, a))
     return A
+
+def fill2D_with_nans(inarray=None, start=[None,None], 
+                    size=[None,None]):
+
+
+    outarray = inarray.copy().astype(float)
+
+    ' for each column'
+    for i,c in enumerate(inarray.T):
+        out = fill1D_with_nans(inarray=c,
+                                start=start[0],
+                                size=size[0])
+        outarray[:,i]=out
+
+    ' for each row'
+    for i,c in enumerate(outarray):
+        out = fill1D_with_nans(inarray=c,
+                                start=start[1],
+                                size=size[1])
+        outarray[i,:]=out
+
+    return outarray
+
+def fill1D_with_nans(inarray=None, start=None, size=None):
+    import numpy as np
+    k = np.arange(start,start+size)
+    out = inarray.copy().astype(float)
+    while True:
+        try:
+            out[k]=np.nan
+            k += size + 1
+        except IndexError:
+            '''
+            converts tail numbers to nan
+            '''
+            inlast_idx = inarray.size - 1
+            idx = np.where(k==inlast_idx)[0]
+            if idx.size>0:
+                idx=idx[0]
+                out[-(1+idx):]=np.nan
+            return out    
