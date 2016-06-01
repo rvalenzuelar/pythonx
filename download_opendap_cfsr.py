@@ -158,3 +158,6 @@ ivt = iwv_flux(Q,U,V)
 
 plot(ivt,typep='contourf',clevel=range(300,1700,200))
 plot(ivt,typep='pcolor')
+
+
+
