@@ -5,7 +5,7 @@
 	June, 2016
 	raul.valenzuela@colorado.edu
 '''
-
+import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -139,25 +139,61 @@ def plot(array,typep=None,clevel=None):
 	plt.show(block=False)
 
 
-'''	****************
-	Implementation
-	****************'''
+def save_to_file(varname=None,date=None,domain=None,file=None):
 
-# domain={'latn':-57,'latx':-27,'lonn':-110,'lonx':-45} 
-domain={'latn':20,'latx':55,'lonn':-150,'lonx':-116}
+	file.attrs['file_name']        = 'myfilename'
+	file.attrs['file_time']        = 'mydateadntime'
+	file.attrs['creator']          = 'download_opendap_cfsr.py'
+	file.attrs['HDF5_Version']     = h5py.version.hdf5_version
+	file.attrs['h5py_version']     = h5py.version.version
 
-dates=pd.date_range(start='2004-02-25 06:00',
-					periods=1,
+	array = download_to_array(varname=varname,
+								dates=date,
+								domain=domain)
+
+	grp = f.create_group('timestamp')
+	ds = grp.create_dataset(varname, data=array['data'])
+	ds.attrs['units'] = 'someunit'
+
+
+'''	********************
+	Implementation plot
+	********************'''
+
+# domain={'latn':20,'latx':55,'lonn':-150,'lonx':-116}
+
+# dates=pd.date_range(start='2004-02-25 06:00',
+# 					periods=1,
+# 					freq='6H')
+
+# Q = download_to_array(varname='SPHU',dates=dates,domain=domain)
+# U = download_to_array(varname='UWND',dates=dates,domain=domain)
+# V = download_to_array(varname='VWND',dates=dates,domain=domain)
+
+# ivt = iwv_flux(Q,U,V)
+
+# plot(ivt,typep='contourf',clevel=range(300,1700,200))
+# plot(ivt,typep='pcolor')
+
+
+'''	***************************
+	Implementation save to file
+	****************************'''
+
+domain={'latn':-57,'latx':-27,'lonn':-110,'lonx':-45} 
+
+dates=pd.date_range(start='2000-01-01 00:00',
+					periods=10,
 					freq='6H')
 
-Q = download_to_array(varname='SPHU',dates=dates,domain=domain)
-U = download_to_array(varname='UWND',dates=dates,domain=domain)
-V = download_to_array(varname='VWND',dates=dates,domain=domain)
+f = h5py.File(foofile, "w") 
 
-ivt = iwv_flux(Q,U,V)
+for d in dates:
+	Q = save_to_file(varname='SPHU',date=d,domain=domain,file=f)
+	U = save_to_file(varname='UWND',date=d,domain=domain,file=f)
+	V = save_to_file(varname='VWND',date=d,domain=domain,file=f)
 
-plot(ivt,typep='contourf',clevel=range(300,1700,200))
-plot(ivt,typep='pcolor')
+	# ivt = iwv_flux(Q,U,V)
 
 
-
+f.close()
