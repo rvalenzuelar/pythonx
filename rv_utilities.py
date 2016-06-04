@@ -111,3 +111,25 @@ def fill1D_with_nans(inarray=None, start=None, size=None):
                 idx=idx[0]
                 out[-(1+idx):]=np.nan
             return out    
+
+
+def datenum_to_datetime(datenum):
+    """
+    Convert Matlab datenum into Python datetime.
+    :param datenum: Date in datenum format
+    :return:        Datetime object corresponding to datenum.
+
+    source: https://gist.github.com/vicow
+    """
+    from datetime import datetime,timedelta
+
+    days = datenum % 1
+    hours = days % 1 * 24
+    minutes = hours % 1 * 60
+    seconds = minutes % 1 * 60
+    return datetime.fromordinal(int(datenum)) \
+        + timedelta(days=int(days)) \
+        + timedelta(hours=int(hours)) \
+        + timedelta(minutes=int(minutes)) \
+        + timedelta(seconds=round(seconds)) \
+        - timedelta(days=366)
