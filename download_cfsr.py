@@ -16,8 +16,8 @@ import pandas as pd
 
 from urlparse import urlparse
 
-start='01-01-2000 00:00'
-end = '01-02-2000 00:00'
+start='2000-01-01 00:00'
+end = '2000-01-03 06:00'
 dates = pd.date_range(start=start,end=end,freq='6H')
 
 root = 'http://nomads.ncdc.noaa.gov/modeldata/cmd_pgbh'
