@@ -6,7 +6,6 @@
     January, 2106
 """
 
-import numpy as np
 from geographiclib.geodesic import Geodesic
 
 
@@ -37,3 +36,20 @@ def circle(m, olat, olon, radius):
 
     proj_x, proj_y = m(X,Y)
     return zip(proj_x, proj_y)
+    
+def sector(m, olat, olon, radius, sector):
+    X = [olon]
+    Y = [olat]
+    for azimuth in sector:
+        lon2, lat2 = pick_circle_point(olon, olat, azimuth, radius)
+        X.append(lon2)
+        Y.append(lat2)
+    X.append(X[0])
+    Y.append(Y[0])
+    
+#    print zip(X,Y)
+
+    proj_x, proj_y = m(X,Y)
+    return zip(proj_x, proj_y)    
+    
+    

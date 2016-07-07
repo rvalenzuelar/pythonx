@@ -45,9 +45,19 @@ def iwv_flux(Q,U,V):
 
 def parse_url(dates):
 
-	root = 'http://nomads.ncdc.noaa.gov/thredds/dodsC/modeldata/cmd_pgbh'
+	# old server versions
+	# root = 'http://nomads.ncdc.noaa.gov/thredds/dodsC/modeldata/cmd_pgbh'
+	# url_str='{0}/{1}/{2}/{3}/{4}'
 
-	url_str='{0}/{1}/{2}/{3}/{4}'
+	# template  = 'http://nomads.ncdc.noaa.gov/thredds/remoteCatalogService?'
+	# template += 'command=subset&catalog='
+	# template += 'http://nomads.ncdc.noaa.gov/thredds/catalog/modeldata/cmd_pgbh'
+	# template += '/{0}/{1}/{2}/catalog.xml&dataset=modeldata/cmd_pgbh/{0}/{1}/{2}/{3}'
+
+	template =  'http://nomads.ncdc.noaa.gov/'
+	template += 'thredds/dodsC/modeldata/cmd_pgbh/'
+	template += '{}/{}/{}/{}'
+
 
 	url_list=[]
 	try:
@@ -56,8 +66,9 @@ def parse_url(dates):
 			m = str(date.month).zfill(2)
 			d = str(date.day).zfill(2)
 			H = str(date.hour).zfill(2)		
-			file_name = cfsr_prefix+y+m+d+H+'.grb2'
-			url_list.append(url_str.format(root,y,y+m,y+m+d,file_name))
+			file_name = cfsr_prefix + y + m + d + H + '.grb2'
+			# url_list.append(url_str.format(root,y,y+m,y+m+d,file_name))
+			url_list.append(template.format(y, y+m, y+m+d, file_name))
 	except TypeError:
 		'it is only one timestamp'
 		date=dates
@@ -65,15 +76,16 @@ def parse_url(dates):
 		m = str(date.month).zfill(2)
 		d = str(date.day).zfill(2)
 		H = str(date.hour).zfill(2)		
-		file_name = 'pgbhnl.gdas.'+y+m+d+H+'.grb2'
-		url_list.append(url_str.format(root,y,y+m,y+m+d,file_name))
-
+		file_name = 'pgbhnl.gdas.' + y + m + d + H + '.grb2'
+		# url_list.append(url_str.format(root,y,y+m,y+m+d,file_name))
+		url_list.append(template.format(y, y+m, y+m+d, file_name))
+	
 	return url_list
 
 def read_opendap_index(date=None,domain=None):
 
 	url = parse_url(date)
-
+	print url[0]
 	dataset = open_url(url[0])
 
 	lats = dataset['lat'][:]
@@ -241,7 +253,7 @@ def run_plot():
 	plot(ivt,typep='pcolor')
 
 
-def run_save_to_file():
+def run_save_to_file(year=None,date=None,dates=None):
 	'''	
 	***************************
 	Implementation save to file
@@ -253,13 +265,19 @@ def run_save_to_file():
 			'lonn':-110,'lonx':-45,
 			'preslvl':None} 
 
-	# dates=pd.date_range(start='2000-01-01 00:00',
-	# 					periods=1464,
-	# 					freq='6H')
+	if date and year is None and dates is None:
+		dates=pd.date_range(start=date,
+							periods=1,
+							freq='6H')
+	elif dates and year is None and date is None:
+		dates=pd.date_range(start=dates[0],
+							end  =dates[1],
+							freq ='6H')		
+	else:
+		dates=pd.date_range(start=year+'-01-01 00:00',
+							end  =year+'-12-31 18:00',
+							freq ='6H')
 
-	dates=pd.date_range(start='2000-03-29 12:00',
-						end  ='2000-12-31 18:00',
-						freq ='6H')
 
 	total_files = dates.size
 	print_str='Downloading ({0}/{1}) {2}'
@@ -268,11 +286,13 @@ def run_save_to_file():
 
 	dates_except = []
 
+	file_name = '/localdata/CFSR_SA/{0}/CFSR_SA_{1}.h5'
+
 	for n,d in enumerate(dates):
 
 		print(print_str.format(n+1,total_files,d))
 
-		fname = '/localdata/CFSR_SA/CFSR_SA_'+d.strftime('%Y%m%d%H')+'.h5'
+		fname = file_name.format(d.strftime('%Y'),d.strftime('%Y%m%d%H'))
 
 		try:
 			Q = download_to_array(varname='SPHU',dates=d,indexs=indexs)
@@ -298,10 +318,60 @@ def run_save_to_file():
 			print 'Problem with {}'.format(d)
 			dates_except.append(d)
 
-	print dates_except
+	for de in dates_except:
+		print 'Need redownload: {}'.format(de)
 
 	t1=datetime.now()
 	td=t1-t0
 	print 'Saving time elapsed: {} seconds'.format(td.seconds)
 
-run_save_to_file()
+def run_check_downloaded(year=None):
+	'''check if 6 hourly files 
+	of year were downloaded
+	'''
+	import os
+
+	files_path = '/localdata/CFSR_SA'+'/'+year
+	
+	dates=pd.date_range(start=year+'-01-01 00:00',
+						end  =year+'-12-31 18:00',
+						freq ='6H')
+	
+	buf_list=[]
+	for d in dates:
+		fn = 'CFSR_SA_{}.h5'.format(d.strftime('%Y%m%d%H'))
+		buf_list.append(fn)
+	
+	files_down = os.listdir(files_path+'/')
+	not_found = []
+	for n,f in enumerate(buf_list):
+		
+		if f not in files_down:
+			not_found.append(f)
+	
+	if len(not_found)>0:
+		for nf in not_found:
+			print 'File {} not found'.format(nf)
+	else:
+		pstr = 'All CFSR files year {} dowloaded to {}' 
+		print pstr.format(year, files_path)
+
+
+
+'***************************************'
+'***************************************'
+
+run_save_to_file(year='2011')
+
+
+# run_save_to_file(dates=['2010-02-23 00:00:00',
+# 						'2010-12-31 18:00:00'])
+
+
+# run_save_to_file(date='2010-02-23 12:00:00')
+
+
+
+run_check_downloaded(year='2011')
+
+

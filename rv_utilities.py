@@ -6,21 +6,60 @@
 '''
 
 
-def add_colorbar(ax, im, cbar_ticks=None):
+def add_colorbar(ax, im, ticks=None,size=None,loc=None,label=None,
+                 fontsize=14,invisible=False,labelpad=5):
+
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
     divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="2%", pad=0.05)
-    if cbar_ticks is None:
-        cbar = plt.colorbar(im, cax=cax)
+
+    if size and loc:
+        cax = divider.append_axes(loc, size=size, pad=0.05)
+    elif size:
+        cax = divider.append_axes('right', size=size, pad=0.05)
+    elif loc:
+        cax = divider.append_axes(loc, size='2%', pad=0.05)
     else:
-        cbar = plt.colorbar(im, cax=cax, ticks=cbar_ticks)
+        cax = divider.append_axes("right", size='2%', pad=0.05)
+
+    if loc == 'top':
+        ori = 'horizontal'
+    if loc == 'right':    
+        ori = 'vertical'
+
+    if ticks is None:
+        cbar = plt.colorbar(im, cax=cax, orientation=ori)
+    else:
+        cbar = plt.colorbar(im, cax=cax, ticks=ticks,
+                            orientation=ori)
+    
+    if invisible is True:
+        ''' creates white space for correct vertical
+            alignment with other subplots
+        '''
+        cbar.remove()
+    
+    if loc == 'top':
+        cbar.ax.xaxis.set_ticks_position(loc)
+        cbar.ax.xaxis.set_label_position(loc)
+        cbar.ax.xaxis.set_tick_params(labelsize=fontsize)
+        cbar.ax.set_xlabel(label,
+                           fontdict=dict(size=fontsize),
+                            labelpad=labelpad)
+    else:
+        cbar.ax.yaxis.set_tick_params(labelsize=fontsize)
+        cbar.ax.set_ylabel(label, rotation=270,
+                           fontdict=dict(size=fontsize),
+                            labelpad=labelpad)
+    
     return cbar
 
 
 def format_xaxis(ax, time_array, delta_hours=3):
+    
     import numpy as np
+    
     ' time is start hour'
     date_fmt = '%d\n%H'
     new_xticks = np.asarray(range(len(time_array)))
@@ -35,9 +74,11 @@ def format_xaxis(ax, time_array, delta_hours=3):
 
 
 def format_yaxis(ax, hgt, **kwargs):
+    
     ''' assumes hgt in km '''
     import numpy as np
     from scipy.interpolate import interp1d
+    
     if 'toplimit' in kwargs:
         ''' extentd hgt to toplimit km so all
         time-height sections have a common yaxis'''
@@ -56,10 +97,13 @@ def format_yaxis(ax, hgt, **kwargs):
 
 
 def pandas2stack(pandas_array):
+    
     ''' converts pandas dataframe containing
     t rows of 2D (m x n) arrays to a numpy 3D
     array of dimensions (m x n x t) '''
+    
     import numpy as np
+    
     narrays = pandas_array.shape[0]
     for n in range(narrays):
         a = pandas_array.iloc[[n]].values[0]
@@ -71,9 +115,8 @@ def pandas2stack(pandas_array):
             A = np.dstack((A, a))
     return A
 
-def fill2D_with_nans(inarray=None, start=[None,None], 
+def fill2D_with_nans(inarray=None, start=[None,None],
                     size=[None,None]):
-
 
     outarray = inarray.copy().astype(float)
 
@@ -110,7 +153,7 @@ def fill1D_with_nans(inarray=None, start=None, size=None):
             if idx.size>0:
                 idx=idx[0]
                 out[-(1+idx):]=np.nan
-            return out    
+            return out
 
 
 def datenum_to_datetime(datenum):
@@ -122,6 +165,7 @@ def datenum_to_datetime(datenum):
     source: https://gist.github.com/vicow
     """
     from datetime import datetime,timedelta
+#	import numpy as np
 
     days = datenum % 1
     hours = days % 1 * 24
@@ -133,3 +177,77 @@ def datenum_to_datetime(datenum):
         + timedelta(minutes=int(minutes)) \
         + timedelta(seconds=round(seconds)) \
         - timedelta(days=366)
+
+#    return datetime.fromordinal(int(datenum))+ timedelta(days=int(days))    + timedelta(hours=int(hours))+ timedelta(minutes=int(minutes)) +timedelta(seconds=int(seconds))-timedelta(days=366)
+
+
+
+def add_subplot_axes(ax, rect, axisbg='w'):
+    
+    '''
+    Source:
+    http://stackoverflow.com/questions/17458580/
+    embedding-small-plots-inside-subplots-in-matplotlib
+    
+    rect=[x,y,width,heigth]    
+    
+    '''
+    
+    import matplotlib.pyplot as plt
+    
+    fig = plt.gcf()
+    box = ax.get_position()
+    width = box.width
+    height = box.height
+
+    inax_position = ax.transAxes.transform(rect[0:2])
+    transFigure = fig.transFigure.inverted()
+    infig_position = transFigure.transform(inax_position)
+    x = infig_position[0]
+    y = infig_position[1]
+    width *= rect[2]
+    height *= rect[3]  # <= Typo was here
+
+    subax = fig.add_axes([x, y, width, height], axisbg=axisbg)
+
+    x_labelsize = subax.get_xticklabels()[0].get_size()
+    y_labelsize = subax.get_yticklabels()[0].get_size()
+    x_labelsize *= rect[2]**0.1
+    y_labelsize *= rect[3]**0.1
+    
+    subax.xaxis.set_tick_params(labelsize = x_labelsize)
+    subax.yaxis.set_tick_params(labelsize = y_labelsize)
+    
+    return subax
+
+
+def discrete_cmap(N, norm_range=None,base_cmap=None):
+    
+    ''' 
+    Create an N-bin discrete colormap from the specified input map
+    By Jake VanderPlas
+    License: BSD-style
+    source:https://gist.github.com/jakevdp/91077b0cae40f8f8244a
+    '''
+
+
+    import matplotlib.pyplot as plt
+    import numpy as np    
+
+    # Note that if base_cmap is a string or None, you can simply do
+    #    return plt.cm.get_cmap(base_cmap, N)
+    # The following works for string, None, or a colormap instance:
+
+    if norm_range is None:
+        bot = 0
+        top = 1
+    else:
+        bot = norm_range[0]
+        top = norm_range[1]
+
+    base = plt.cm.get_cmap(base_cmap)
+    color_list = base(np.linspace(bot, top, N))
+    cmap_name = base.name + str(N)
+    return base.from_list(cmap_name, color_list, N)
+
+
