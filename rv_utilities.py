@@ -6,7 +6,7 @@
 '''
 
 
-def add_colorbar(ax, im, ticks=None,size=None,loc=None,label=None,
+def add_colorbar(ax, im, ticks=None,size=None,loc='right',label=None,
                  fontsize=14,invisible=False,labelpad=5):
 
     import matplotlib.pyplot as plt
@@ -66,6 +66,38 @@ def format_xaxis(ax, time_array, delta_hours=3):
     xtlabel = []
     for t in time_array:
         if np.mod(t.hour, delta_hours) == 0:
+            xtlabel.append(t.strftime(date_fmt))
+        else:
+            xtlabel.append('')
+    ax.set_xticks(new_xticks)
+    ax.set_xticklabels(xtlabel)
+
+def format_xaxis2(ax, time_array, timelabstep=None):
+    
+    import numpy as np
+    import pandas as pd
+    from datetime import timedelta
+    
+    onehr = timedelta(hours=1)
+
+    ini = time_array[0]    
+    end = time_array[-1]
+ 
+    if ini.hour not in [0,12]:
+        delt=np.mod(12,ini.hour)
+        if delt>5:
+            delt=np.mod(24,ini.hour)
+        inix = ini + onehr*delt
+    else:
+        inix = ini
+   
+    newtime = pd.date_range(inix,end,freq=timelabstep)
+    ' time is start hour'
+    date_fmt = '%d\n%H'
+    new_xticks = np.asarray(range(len(time_array)))
+    xtlabel = []
+    for t in time_array:
+        if pd.to_datetime(t) in newtime:
             xtlabel.append(t.strftime(date_fmt))
         else:
             xtlabel.append('')
