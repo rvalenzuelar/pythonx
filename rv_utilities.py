@@ -6,8 +6,9 @@
 '''
 
 
-def add_colorbar(ax, im, ticks=None,size=None,loc='right',label=None,
-                 fontsize=14,invisible=False,labelpad=5):
+def add_colorbar(ax, im, size=None, loc='right',label=None,
+                 ticks=None, ticklabels=None, pad=None,
+                 fontsize=14, invisible=False, labelpad=None):
 
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -15,18 +16,24 @@ def add_colorbar(ax, im, ticks=None,size=None,loc='right',label=None,
     divider = make_axes_locatable(ax)
 
     if size and loc:
-        cax = divider.append_axes(loc, size=size, pad=0.05)
+        if pad is None: pad=0.05
+        cax = divider.append_axes(loc, size=size, pad=pad)
     elif size:
-        cax = divider.append_axes('right', size=size, pad=0.05)
+        if pad is None: pad=0.1
+        cax = divider.append_axes('right', size=size, pad=pad)
     elif loc:
-        cax = divider.append_axes(loc, size='2%', pad=0.05)
+        if pad is None: pad=0.05
+        cax = divider.append_axes(loc, size='2%', pad=pad)
     else:
-        cax = divider.append_axes("right", size='2%', pad=0.05)
+        if pad is None: pad=0.1
+        cax = divider.append_axes("right", size='2%', pad=pad)
 
-    if loc == 'top':
+    if loc in ['top','bottom']:
         ori = 'horizontal'
+        if labelpad is None: labelpad=4
     if loc == 'right':    
         ori = 'vertical'
+        if labelpad is None: labelpad=10
 
     if ticks is None:
         cbar = plt.colorbar(im, cax=cax, orientation=ori)
@@ -38,20 +45,39 @@ def add_colorbar(ax, im, ticks=None,size=None,loc='right',label=None,
         ''' creates white space for correct vertical
             alignment with other subplots
         '''
-        cbar.remove()
+        cax.remove()
     
-    if loc == 'top':
+    if loc in ['top','bottom']:
         cbar.ax.xaxis.set_ticks_position(loc)
         cbar.ax.xaxis.set_label_position(loc)
         cbar.ax.xaxis.set_tick_params(labelsize=fontsize)
         cbar.ax.set_xlabel(label,
                            fontdict=dict(size=fontsize),
-                            labelpad=labelpad)
+                            labelpad=labelpad)      
     else:
         cbar.ax.yaxis.set_tick_params(labelsize=fontsize)
         cbar.ax.set_ylabel(label, rotation=270,
                            fontdict=dict(size=fontsize),
                             labelpad=labelpad)
+    
+    if ticklabels is not None:
+        if isinstance(ticklabels[0],str):
+            cbar.set_ticklabels(ticklabels)
+        else:            
+            strticklabs = list()
+            for t in ticks:
+                if t in ticklabels:
+                    if isinstance(t,int):
+                        strticklabs.append(str(t))
+                    elif isinstance(t,float):
+                        strticklabs.append('{}'.format(t))
+                else:
+                    strticklabs.append('')
+            
+            cbar.set_ticklabels(strticklabs)
+            
+    if loc == 'bottom':
+        ax.xaxis.tick_top()
     
     return cbar
 
@@ -281,5 +307,31 @@ def discrete_cmap(N, norm_range=None,base_cmap=None):
     color_list = base(np.linspace(bot, top, N))
     cmap_name = base.name + str(N)
     return base.from_list(cmap_name, color_list, N)
+
+def linear_reg(X,Y,const):
+    
+    import statsmodels.api as sm    
+    import numpy as np
+    
+    X=np.array(X)    
+    Y=np.array(Y)    
+    
+    bad = np.isnan(X) | np.isnan(Y)
+    X=X[~bad]    
+    Y=Y[~bad]    
+    
+    if const is True:
+        X = sm.add_constant(X)
+       
+    model = sm.OLS(Y,X)
+    result = model.fit()          
+    return result
+    
+    
+
+
+
+
+
 
 
