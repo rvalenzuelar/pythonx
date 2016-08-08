@@ -81,6 +81,22 @@ def add_colorbar(ax, im, size=None, loc='right',label=None,
     
     return cbar
 
+def add_floating_colorbar(fig=None, im=None, labelsize=25,label=None,
+                          ticks=None, ticklabels=None,
+                          position=None,loc=None):
+
+    import mpl_toolkits.axisartist as AA
+
+    axaa = AA.Axes(fig,position)
+    axaa.tick_params(labelsize=labelsize)
+    add_colorbar(axaa,im,
+                 label=label,
+                 ticks=ticks,
+                 ticklabels=ticklabels,
+                 loc=loc)
+    fig.add_axes(axaa)
+    axaa.remove() # leave only colorbar
+
 
 def format_xaxis(ax, time_array, delta_hours=3):
     
