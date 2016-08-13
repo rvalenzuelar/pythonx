@@ -31,7 +31,7 @@ def add_colorbar(ax, im, size=None, loc='right',label=None,
     if loc in ['top','bottom']:
         ori = 'horizontal'
         if labelpad is None: labelpad=4
-    if loc == 'right':    
+    if loc in ['right','left']:    
         ori = 'vertical'
         if labelpad is None: labelpad=10
 
@@ -39,8 +39,9 @@ def add_colorbar(ax, im, size=None, loc='right',label=None,
         cbar = plt.colorbar(im, cax=cax, orientation=ori)
     else:
         cbar = plt.colorbar(im, cax=cax, ticks=ticks,
-                            orientation=ori)
-    
+                            orientation=ori)    
+    cbar.ax.yaxis.tick_right()
+
     if invisible is True:
         ''' creates white space for correct vertical
             alignment with other subplots
@@ -86,6 +87,9 @@ def add_floating_colorbar(fig=None, im=None, labelsize=25,label=None,
                           position=None,loc=None):
 
     import mpl_toolkits.axisartist as AA
+#    from matplotlib import rcParams
+#    rcParams['ytick.direction'] = 'out'
+
 
     axaa = AA.Axes(fig,position)
     axaa.tick_params(labelsize=labelsize)
