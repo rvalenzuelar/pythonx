@@ -159,18 +159,19 @@ def get_beg_end_times(file_list):
 
 def beam_hgt(target_elev):
 
+    import pandas as pd
+
     H = []
-    ranges = range(0, 101)
-    ranges = [float(r) for r in ranges]
+    ranges = np.arange(0, 101)
     elev_angles = range(0, 11)  # [deg]
-    vert_beam_width = 1.  # [deg]
+#    vert_beam_width = 1.  # [deg]
 
     fig, ax = plt.subplots()
 
     te = float(target_elev)
     el = [float(te)] * len(ranges)
-    H = map(beamhgt_stdrefraction, ranges, el)
-    ax.plot(ranges, H, color='r')
+    H_target = map(beamhgt_stdrefraction, ranges, el)
+    ax.plot(ranges, H_target, color='r')
     for e in elev_angles:
         el = [float(e)] * len(ranges)
         H = map(beamhgt_stdrefraction, ranges, el)
@@ -185,6 +186,8 @@ def beam_hgt(target_elev):
     plt.grid(True)
     plt.show()
 
+    S = pd.Series(H_target,index=ranges)
+    return S
 
 def beamhgt_stdrefraction(r, el):
     ' From Rinehart p. 62'
@@ -193,7 +196,10 @@ def beamhgt_stdrefraction(r, el):
     R = (4 / 3.) * ER
     Ho = 0  # [km] radar's altitude
     # print [r,el]
-    return np.sqrt(r * r + R * R + 2 * r * R * np.sin(el * np.pi / 180.)) - R + Ho
+    r2 = r*r
+    R2 = R*R
+    sin =  np.sin(el*np.pi/180.)
+    return np.sqrt(r2 + R2 + 2*r*R*sin) - R + Ho
 
 
 def usage():
