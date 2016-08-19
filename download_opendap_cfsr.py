@@ -361,14 +361,14 @@ def run_check_downloaded(year=None):
 '***************************************'
 '***************************************'
 
-run_save_to_file(year='2011')
+#run_save_to_file(year='2011')
 
 
 # run_save_to_file(dates=['2010-02-23 00:00:00',
 # 						'2010-12-31 18:00:00'])
 
 
-# run_save_to_file(date='2010-02-23 12:00:00')
+run_save_to_file(date='2011-02-18 06:00:00')
 
 
 
