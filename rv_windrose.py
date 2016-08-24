@@ -81,7 +81,6 @@ class WindroseAxes(PolarAxes):
             fig.add_axes(ax)
             return ax
         elif subplots is not None:
-
             rows,cols = subplots           
             fig,axes = plt.subplots(rows,cols,figsize=figsize)
             axes = axes.flatten()

@@ -32,10 +32,10 @@ for D in DIRS:
         try:
             status = g.status()
             if 'nothing to commit' in status:
-                print currentdir.green()
+                print(currentdir.green())
             else:
-                print currentdir.red()
-            print status
+                print(currentdir.red())
+            print(status)
         except:
             pass
-print ''
+print('')
