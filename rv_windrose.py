@@ -68,7 +68,9 @@ class WindroseAxes(PolarAxes):
 
     @staticmethod
     def from_ax(ax=None, fig=None, subplots=None, figsize=None,
-                *args, **kwargs):
+                space = None, *args, **kwargs):
+
+        import matplotlib.gridspec as gridspec
         
         if ax is None and subplots is None:
             if fig is None:
@@ -82,10 +84,17 @@ class WindroseAxes(PolarAxes):
             return ax
         elif subplots is not None:
             rows,cols = subplots           
-            fig,axes = plt.subplots(rows,cols,figsize=figsize)
-            axes = axes.flatten()
+#            fig,axes = plt.subplots(rows,cols,figsize=figsize)
+            
+            fig = plt.figure(figsize = figsize)
+            gs = gridspec.GridSpec(rows, cols)
+            
+            if space is not None:
+                gs.update(hspace=space[0], wspace=space[1]) 
+            
             axes_list = list()
-            for ax in axes:
+            for g in gs:
+                ax = plt.subplot(g)
                 ax.set(aspect='equal')
                 bounds = ax.get_position().bounds
                 ax.remove()                                        
