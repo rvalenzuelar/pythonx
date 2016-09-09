@@ -68,7 +68,7 @@ class WindroseAxes(PolarAxes):
 
     @staticmethod
     def from_ax(ax=None, fig=None, subplots=None, figsize=None,
-                space = None, *args, **kwargs):
+                space=None, *args, **kwargs):
 
         import matplotlib.gridspec as gridspec
         
