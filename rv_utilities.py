@@ -178,7 +178,17 @@ def pandas2stack(pandas_array):
     
     ''' converts pandas dataframe containing
     t rows of 2D (m x n) arrays to a numpy 3D
-    array of dimensions (m x n x t) '''
+    array of dimensions (m x n x t)
+
+    UPDATE!!
+    A faster way (this function may not be even needed)
+
+    If S is a pandas series containing list or arrays per index:
+
+    slist = S.tolist()
+    sarray  = np.array(slist)
+
+    '''
     
     import numpy as np
     
