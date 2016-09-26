@@ -203,24 +203,26 @@ def pandas2stack(pandas_array):
             A = np.dstack((A, a))
     return A
 
-def fill2D_with_nans(inarray=None, start=[None,None],
-                    size=[None,None]):
+def fill2D_with_nans(inarray=None,start=[None,None],
+                     size=[None,None]):
 
     outarray = inarray.copy().astype(float)
 
-    ' for each column'
-    for i,c in enumerate(inarray.T):
-        out = fill1D_with_nans(inarray=c,
-                                start=start[0],
-                                size=size[0])
-        outarray[:,i]=out
+    if size[0]>0:
+        ' for each column'
+        for i,c in enumerate(inarray.T):
+            out = fill1D_with_nans(inarray=c,
+                                    start=start[0],
+                                    size=size[0])
+            outarray[:,i]=out
 
-    ' for each row'
-    for i,c in enumerate(outarray):
-        out = fill1D_with_nans(inarray=c,
-                                start=start[1],
-                                size=size[1])
-        outarray[i,:]=out
+    if size[1]>0:
+        ' for each row'
+        for i,c in enumerate(outarray):
+            out = fill1D_with_nans(inarray=c,
+                                    start=start[1],
+                                    size=size[1])
+            outarray[i,:]=out
 
     return outarray
 
@@ -320,7 +322,8 @@ def discrete_cmap(N, norm_range=None,base_cmap=None):
 
 
     import matplotlib.pyplot as plt
-    import numpy as np    
+    import numpy as np
+    from matplotlib.colors import LinearSegmentedColormap as lisegcmap
 
     # Note that if base_cmap is a string or None, you can simply do
     #    return plt.cm.get_cmap(base_cmap, N)
@@ -336,7 +339,13 @@ def discrete_cmap(N, norm_range=None,base_cmap=None):
     base = plt.cm.get_cmap(base_cmap)
     color_list = base(np.linspace(bot, top, N))
     cmap_name = base.name + str(N)
-    return base.from_list(cmap_name, color_list, N)
+
+    if base_cmap in ['viridis']:
+        cm = lisegcmap.from_list(cmap_name, color_list, N)
+    else:
+        cm = base.from_list(cmap_name, color_list, N)
+
+    return cm
 
 def linear_reg(X,Y,const):
     
