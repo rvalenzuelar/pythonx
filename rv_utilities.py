@@ -8,7 +8,8 @@
 
 def add_colorbar(ax, im, size=None, loc='right',label=None,
                  ticks=None, ticklabels=None, pad=None,
-                 fontsize=14, invisible=False, labelpad=None):
+                 fontsize=14, invisible=False, labelpad=None,
+                 ticks_inside=False, tick_color=None):
 
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -79,7 +80,15 @@ def add_colorbar(ax, im, size=None, loc='right',label=None,
             
     if loc == 'bottom':
         ax.xaxis.tick_top()
-    
+
+    if ticks_inside:
+        cbar.ax.xaxis.set_tick_params(pad=-15)
+        for label in cbar.ax.xaxis.get_ticklabels()[::2]:
+            label.set_visible(False)
+
+    if tick_color is not None:
+        cbar.ax.xaxis.set_tick_params(labelcolor=tick_color)
+
     return cbar
 
 def add_floating_colorbar(fig=None, im=None, labelsize=25,label=None,
