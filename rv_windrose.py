@@ -7,10 +7,10 @@ Modified version from windrose.py
 
 """
 
-#!/usr/bin/env python
+# !/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#from __future__ import absolute_import, division, print_function
+# from __future__ import absolute_import, division, print_function
 
 import matplotlib as mpl
 import numpy as np
@@ -20,7 +20,7 @@ from numpy.lib.twodim_base import histogram2d
 from pylab import poly_between
 
 RESOLUTION = 100
-ZBASE = -1000 #The starting zorder for all drawing, negative to have the grid on
+ZBASE = -1000  # The starting zorder for all drawing, negative to have the grid on
 VAR_DEFAULT = 'speed'
 DIR_DEFAULT = 'direction'
 FIGSIZE_DEFAULT = (8, 8)
@@ -44,7 +44,9 @@ class WindAxesFactory(object):
                 ax = cls.from_ax(ax, *args, **kwargs)
                 return ax
         else:
-            raise(NotImplementedError("typ=%r but it might be in %s" % (typ, d.keys())))
+            raise (NotImplementedError(
+                "typ=%r but it might be in %s" % (typ, d.keys())))
+
 
 class WindroseAxes(PolarAxes):
     """
@@ -57,10 +59,10 @@ class WindroseAxes(PolarAxes):
         """
         See Axes base class for args and kwargs documentation
         """
-        
-        #Uncomment to have the possibility to change the resolution directly 
-        #when the instance is created
-        #self.RESOLUTION = kwargs.pop('resolution', 100)
+
+        # Uncomment to have the possibility to change the resolution directly
+        # when the instance is created
+        # self.RESOLUTION = kwargs.pop('resolution', 100)
         PolarAxes.__init__(self, *args, **kwargs)
         self.set_aspect('equal', adjustable='box', anchor='C')
         self.radii_angle = 0
@@ -71,7 +73,7 @@ class WindroseAxes(PolarAxes):
                 space=None, *args, **kwargs):
 
         import matplotlib.gridspec as gridspec
-        
+
         if ax is None and subplots is None:
             if fig is None:
                 fig = plt.figure(figsize=FIGSIZE_DEFAULT,
@@ -83,24 +85,24 @@ class WindroseAxes(PolarAxes):
             fig.add_axes(ax)
             return ax
         elif subplots is not None:
-            rows,cols = subplots           
-#            fig,axes = plt.subplots(rows,cols,figsize=figsize)
-            
-            fig = plt.figure(figsize = figsize)
+            rows, cols = subplots
+            #            fig,axes = plt.subplots(rows,cols,figsize=figsize)
+
+            fig = plt.figure(figsize=figsize)
             gs = gridspec.GridSpec(rows, cols)
-            
+
             if space is not None:
-                gs.update(hspace=space[0], wspace=space[1]) 
-            
+                gs.update(hspace=space[0], wspace=space[1])
+
             axes_list = list()
             for g in gs:
                 ax = plt.subplot(g)
                 ax.set(aspect='equal')
                 bounds = ax.get_position().bounds
-                ax.remove()                                        
+                ax.remove()
                 axr = WindroseAxes(fig, bounds, axisbg='w',
                                    *args, **kwargs)
-                fig.add_axes(axr)                
+                fig.add_axes(axr)
                 axes_list.append(axr)
             return np.array(axes_list)
         else:
@@ -113,21 +115,20 @@ class WindroseAxes(PolarAxes):
         PolarAxes.cla(self)
         theta_delta = 30
         self.theta_angles = np.arange(0, 360, theta_delta)
-#        self.theta_labels = ['E', 'N-E', 'N', 'N-W', 'W',
-#                            'S-W', 'S', 'S-E']
-        first_quad = range(90, -1, -theta_delta) 
+        #        self.theta_labels = ['E', 'N-E', 'N', 'N-W', 'W',
+        #                            'S-W', 'S', 'S-E']
+        first_quad = range(90, -1, -theta_delta)
         quads = range(330, 89, -theta_delta)
-        all_quads=first_quad+quads
+        all_quads = first_quad + quads
         self.theta_labels = [str(a) for a in all_quads]
         self.set_thetagrids(angles=self.theta_angles,
                             labels=self.theta_labels)
 
-        self._info = {'dir' : list(),
-                      'bins' : list(),
-                      'table' : list()}
+        self._info = {'dir': list(),
+                      'bins': list(),
+                      'table': list()}
 
         self.patches_list = list()
-
 
     def _colors(self, cmap, n):
         '''
@@ -135,7 +136,6 @@ class WindroseAxes(PolarAxes):
 
         '''
         return [cmap(i) for i in np.linspace(0.0, 1.0, n)]
-
 
     def set_radii_angle(self, **kwargs):
         """
@@ -148,16 +148,15 @@ class WindroseAxes(PolarAxes):
             angle = self.radii_angle
         self.radii_angle = angle
         radii = np.linspace(0.1, self.get_rmax(), 6)
-        radii_labels = [ "%.1f" %r for r in radii ]
-        radii_labels[0] = "" #Removing label 0
+        radii_labels = ["%.1f" % r for r in radii]
+        radii_labels[0] = ""  # Removing label 0
         self.set_rgrids(radii=radii, labels=radii_labels,
-                               angle=self.radii_angle, **kwargs)
-
+                        angle=self.radii_angle, **kwargs)
 
     def _update(self):
-        self.set_rmax(rmax=np.max(np.sum(self._info['table'], axis=0)))
+        self.set_rmax(
+            rmax=np.max(np.sum(self._info['table'], axis=0)))
         self.set_radii_angle(angle=self.radii_angle)
-
 
     def legend(self, loc='lower left', **kwargs):
         """
@@ -198,22 +197,23 @@ class WindroseAxes(PolarAxes):
             handles = list()
             for p in self.patches_list:
                 if isinstance(p, mpl.patches.Polygon) or \
-                isinstance(p, mpl.patches.Rectangle):
+                        isinstance(p, mpl.patches.Rectangle):
                     color = p.get_facecolor()
                 elif isinstance(p, mpl.lines.Line2D):
                     color = p.get_color()
                 else:
                     raise AttributeError("Can't handle patches")
                 handles.append(mpl.patches.Rectangle((0, 0), 0.2, 0.2,
-                               facecolor=color,
-                               edgecolor='black')
-                              )
+                                                     facecolor=color,
+                                                     edgecolor='black')
+                               )
             return handles
 
         def get_labels():
             labels = np.copy(self._info['bins'])
-            labels = ["[%.1f : %0.1f[" %(labels[i], labels[i+1]) \
-                      for i in range(len(labels)-1)]
+            # print labels
+            labels = ["[%.1f : %0.1f[" % (labels[i], labels[i + 1]) \
+                      for i in range(len(labels) - 1)]
             return labels
 
         kwargs.pop('labels', None)
@@ -235,49 +235,51 @@ class WindroseAxes(PolarAxes):
         """
         Internal method used by all plotting commands
         """
-        #self.cla()
+        # self.cla()
         kwargs.pop('zorder', None)
 
-        #Init of the bins array if not set
+        # Init of the bins array if not set
         bins = kwargs.pop('bins', None)
         if bins is None:
             bins = np.linspace(np.min(var), np.max(var), 6)
         if isinstance(bins, int):
             bins = np.linspace(np.min(var), np.max(var), bins)
         bins = np.asarray(bins)
-        nbins = len(bins)
+        nbins = len(bins)-1
 
-        #Number of sectors
+        # Number of sectors
         nsector = kwargs.pop('nsector', None)
         if nsector is None:
             nsector = 16
 
-        #Sets the colors table based on the colormap or the "colors" argument
+        # Sets the colors table based on the colormap or the "colors" argument
         colors = kwargs.pop('colors', None)
         cmap = kwargs.pop('cmap', None)
         if colors is not None:
             if isinstance(colors, str):
-                colors = [colors]*nbins
+                colors = [colors] * nbins
             if isinstance(colors, (tuple, list)):
                 if len(colors) != nbins:
-                    raise ValueError("colors and bins must have same length")
+                    raise ValueError(
+                        "colors and bins must have same length")
         else:
             if cmap is None:
                 cmap = mpl.cm.jet
             colors = self._colors(cmap, nbins)
 
-        #Building the angles list
-        angles = np.arange(0, -2*np.pi, -2*np.pi/nsector) + np.pi/2
+        # Building the angles list
+        angles = np.arange(0, -2 * np.pi,
+                           -2 * np.pi / nsector) + np.pi / 2
 
         normed = kwargs.pop('normed', False)
         blowto = kwargs.pop('blowto', False)
 
-        #Set the global information dictionnary
+        # Set the global information dictionnary
         out = histogram(direction, var, bins, nsector, normed, blowto)
-        self._info['dir'], self._info['bins'], self._info['table'] = out
+        self._info['dir'], self._info['bins'], self._info[
+            'table'] = out
 
         return bins, nbins, nsector, colors, angles, kwargs
-
 
     def contour(self, direction, var, **kwargs):
         """
@@ -311,25 +313,27 @@ class WindroseAxes(PolarAxes):
 
         """
 
-        bins, nbins, nsector, colors, angles, kwargs = self._init_plot(direction, var,
-                                                                       **kwargs)
+        bins, nbins, nsector, colors, angles, kwargs = self._init_plot(
+            direction, var,
+            **kwargs)
 
-        #closing lines
-        angles = np.hstack((angles, angles[-1]-2*np.pi/nsector))
+        # closing lines
+        angles = np.hstack((angles, angles[-1] - 2 * np.pi / nsector))
         vals = np.hstack((self._info['table'],
-                         np.reshape(self._info['table'][:,0],
-                                   (self._info['table'].shape[0], 1))))
-        
+                          np.reshape(self._info['table'][:, 0],
+                                     (self._info['table'].shape[0],
+                                      1))))
+
         offset = 0
         for i in range(nbins):
-            val = vals[i,:] + offset
+            val = vals[i, :] + offset
             offset += vals[i, :]
             zorder = ZBASE + nbins - i
-            patch = self.plot(angles, val, color=colors[i], zorder=zorder,
+            patch = self.plot(angles, val, color=colors[i],
+                              zorder=zorder,
                               **kwargs)
             self.patches_list.extend(patch)
         self._update()
-
 
     def contourf(self, direction, var, **kwargs):
         """
@@ -364,19 +368,20 @@ class WindroseAxes(PolarAxes):
 
         """
 
-        out = self._init_plot(direction, var,**kwargs)
+        out = self._init_plot(direction, var, **kwargs)
         bins, nbins, nsector, colors, angles, kwargs = out
         kwargs.pop('facecolor', None)
         kwargs.pop('edgecolor', None)
-        
-        #closing lines
-        angles = np.hstack((angles, angles[-1]-2*np.pi/nsector))
+
+        # closing lines
+        angles = np.hstack((angles, angles[-1] - 2 * np.pi / nsector))
         vals = np.hstack((self._info['table'],
-                         np.reshape(self._info['table'][:,0],
-                                   (self._info['table'].shape[0], 1))))
+                          np.reshape(self._info['table'][:, 0],
+                                     (self._info['table'].shape[0],
+                                      1))))
         offset = 0
         for i in range(nbins):
-            val = vals[i,:] + offset
+            val = vals[i, :] + offset
             offset += vals[i, :]
             zorder = ZBASE + nbins - i
             xs, ys = poly_between(angles, 0, val)
@@ -385,7 +390,6 @@ class WindroseAxes(PolarAxes):
                               edgecolor=colors[i],
                               zorder=zorder, **kwargs)
             self.patches_list.extend(patch)
-
 
     def bar(self, direction, var, **kwargs):
         """
@@ -418,8 +422,9 @@ class WindroseAxes(PolarAxes):
 
         """
 
-        bins, nbins, nsector, colors, angles, kwargs = self._init_plot(direction, var,
-                                                                       **kwargs)
+        bins, nbins, nsector, colors, angles, kwargs = self._init_plot(
+            direction, var,
+            **kwargs)
         kwargs.pop('facecolor', None)
         edgecolor = kwargs.pop('edgecolor', None)
         if edgecolor is not None:
@@ -428,24 +433,25 @@ class WindroseAxes(PolarAxes):
         opening = kwargs.pop('opening', None)
         if opening is None:
             opening = 0.8
-        dtheta = 2*np.pi/nsector
-        opening = dtheta*opening
+        dtheta = 2 * np.pi / nsector
+        opening = dtheta * opening
 
         for j in range(nsector):
             offset = 0
             for i in range(nbins):
                 if i > 0:
-                    offset += self._info['table'][i-1, j]
+                    offset += self._info['table'][i - 1, j]
                 val = self._info['table'][i, j]
                 zorder = ZBASE + nbins - i
-                patch = mpl.patches.Rectangle((angles[j]-opening/2, offset), opening, val,
-                    facecolor=colors[i], edgecolor=edgecolor, zorder=zorder,
+                patch = mpl.patches.Rectangle(
+                    (angles[j] - opening / 2, offset), opening, val,
+                    facecolor=colors[i], edgecolor=edgecolor,
+                    zorder=zorder,
                     **kwargs)
                 self.add_patch(patch)
                 if j == 0:
                     self.patches_list.append(patch)
         self._update()
-
 
     def box(self, direction, var, **kwargs):
         """
@@ -476,23 +482,25 @@ class WindroseAxes(PolarAxes):
 
         """
 
-        bins, nbins, nsector, colors, angles, kwargs = self._init_plot(direction, var,
-                                                                       **kwargs)
+        bins, nbins, nsector, colors, angles, kwargs = self._init_plot(
+            direction, var,
+            **kwargs)
         kwargs.pop('facecolor', None)
         edgecolor = kwargs.pop('edgecolor', None)
         if edgecolor is not None:
             if not isinstance(edgecolor, str):
                 raise ValueError('edgecolor must be a string color')
-        opening = np.linspace(0.0, np.pi/16, nbins)
+        opening = np.linspace(0.0, np.pi / 16, nbins)
 
         for j in range(nsector):
             offset = 0
             for i in range(nbins):
                 if i > 0:
-                    offset += self._info['table'][i-1, j]
+                    offset += self._info['table'][i - 1, j]
                 val = self._info['table'][i, j]
                 zorder = ZBASE + nbins - i
-                patch = mpl.patches.Rectangle((angles[j]-opening[i]/2, offset), opening[i],
+                patch = mpl.patches.Rectangle(
+                    (angles[j] - opening[i] / 2, offset), opening[i],
                     val, facecolor=colors[i], edgecolor=edgecolor,
                     zorder=zorder, **kwargs)
                 self.add_patch(patch)
@@ -512,14 +520,16 @@ class WindAxes(mpl.axes.Subplot):
     def from_ax(ax=None, fig=None, *args, **kwargs):
         if ax is None:
             if fig is None:
-                fig = plt.figure(figsize=FIGSIZE_DEFAULT, dpi=DPI_DEFAULT)
+                fig = plt.figure(figsize=FIGSIZE_DEFAULT,
+                                 dpi=DPI_DEFAULT)
             ax = WindAxes(fig, 1, 1, 1, *args, **kwargs)
             fig.add_axes(ax)
             return ax
         else:
-            return(ax)
+            return (ax)
 
-    def pdf(self, var, bins=None, Nx=100, bar_color='b', plot_color='g', Nbins=10, *args, **kwargs):
+    def pdf(self, var, bins=None, Nx=100, bar_color='b',
+            plot_color='g', Nbins=10, *args, **kwargs):
         '''
         Draw probability density function
         and return Weibull distribution parameters
@@ -530,14 +540,17 @@ class WindAxes(mpl.axes.Subplot):
         hist, bins = np.histogram(var, bins=bins, normed=True)
         width = 0.7 * (bins[1] - bins[0])
         center = (bins[:-1] + bins[1:]) / 2
-        self.bar(center, hist, align='center', width=width, color=bar_color)
+        self.bar(center, hist, align='center', width=width,
+                 color=bar_color)
         params = scipy.stats.exponweib.fit(var, floc=0, f0=1)
         x = np.linspace(0, bins[-1], Nx)
-        _ = self.plot(x, scipy.stats.exponweib.pdf(x, *params), color=plot_color)
-        return(self, params)        
+        _ = self.plot(x, scipy.stats.exponweib.pdf(x, *params),
+                      color=plot_color)
+        return (self, params)
 
 
-def histogram(direction, var, bins, nsector, normed=False, blowto=False):
+def histogram(direction, var, bins, nsector, normed=False,
+              blowto=False):
     """
     Returns an array where, for each sector of wind
     (centred on the north), we have the number of time the wind comes with a
@@ -555,31 +568,34 @@ def histogram(direction, var, bins, nsector, normed=False, blowto=False):
     """
 
     if len(var) != len(direction):
-        raise(ValueError("var and direction must have same length"))
+        raise (ValueError("var and direction must have same length"))
 
-    angle = 360./nsector
+    angle = 360. / nsector
 
-    dir_bins = np.arange(-angle/2 ,360.+angle, angle, dtype=np.float)
+    dir_bins = np.arange(-angle / 2, 360. + angle, angle,
+                         dtype=np.float)
     dir_edges = dir_bins.tolist()
     dir_edges.pop(-1)
     dir_edges[0] = dir_edges.pop(-1)
     dir_bins[0] = 0.
 
     var_bins = bins.tolist()
-    var_bins.append(np.inf)
+    # print var_bins
+    # var_bins.append(np.inf)
 
     if blowto:
         direction = direction + 180.
-        direction[direction>=360.] = direction[direction>=360.] - 360
+        direction[direction >= 360.] = direction[
+                                           direction >= 360.] - 360
 
     table = histogram2d(x=var, y=direction, bins=[var_bins, dir_bins],
-                          normed=False)[0]
+                        normed=False)[0]
     # add the last value to the first to have the table of North winds
-    table[:,0] = table[:,0] + table[:,-1]
+    table[:, 0] = table[:, 0] + table[:, -1]
     # and remove the last col
     table = table[:, :-1]
     if normed:
-        table = table*100/table.sum()
+        table = table * 100 / table.sum()
 
     return dir_edges, var_bins, table
 
@@ -612,14 +628,16 @@ def wrbar(direction, var, ax=None, **kwargs):
     return ax
 
 
-def wrpdf(var, bins=None, Nx=100, bar_color='b', plot_color='g', Nbins=10, ax=None, *args, **kwargs):
+def wrpdf(var, bins=None, Nx=100, bar_color='b', plot_color='g',
+          Nbins=10, ax=None, *args, **kwargs):
     '''
     Draw probability density function
     and return Weitbull distribution parameters
     '''
     ax = WindAxes.from_ax(ax)
-    ax, params = ax.pdf(var, bins, Nx, bar_color, plot_color, *args, **kwargs)
-    return(ax, params)
+    ax, params = ax.pdf(var, bins, Nx, bar_color, plot_color, *args,
+                        **kwargs)
+    return (ax, params)
 
 
 def wrscatter(direction, var, ax=None, *args, **kwargs):
@@ -631,7 +649,7 @@ def wrscatter(direction, var, ax=None, *args, **kwargs):
     return ax
 
 
-#def clean(direction, var):
+# def clean(direction, var):
 #    '''
 #    Remove masked values in the two arrays, where if a direction data is masked,
 #    the var data will also be removed in the cleaning process (and vice-versa)
@@ -649,7 +667,8 @@ def clean_df(df, var=VAR_DEFAULT, direction=DIR_DEFAULT):
     removed from DataFrame
     if a direction is nan, this row is also removed from DataFrame
     '''
-    return(df[df[var].notnull() & df[var]!=0 & df[direction].notnull()])
+    return (
+    df[df[var].notnull() & df[var] != 0 & df[direction].notnull()])
 
 
 def clean(direction, var, index=False):
@@ -660,7 +679,7 @@ def clean(direction, var, index=False):
     if a direction is nan, data is also removed from both array
     '''
     dirmask = np.isfinite(direction)
-    varmask = (var!=0 & np.isfinite(var))
+    varmask = (var != 0 & np.isfinite(var))
     mask = dirmask * varmask
     if index is None:
         index = np.arange(mask.sum())
@@ -681,7 +700,10 @@ D_KIND_PLOT = {
     'scatter': wrscatter
 }
 
-def plot_windrose(direction_or_df, var=None, kind='contour', var_name=VAR_DEFAULT, direction_name=DIR_DEFAULT, **kwargs):
+
+def plot_windrose(direction_or_df, var=None, kind='contour',
+                  var_name=VAR_DEFAULT, direction_name=DIR_DEFAULT,
+                  **kwargs):
     if var is None:
         # Assuming direction_or_df is a DataFrame
         df = direction_or_df
@@ -689,22 +711,27 @@ def plot_windrose(direction_or_df, var=None, kind='contour', var_name=VAR_DEFAUL
         direction = df[direction_name].values
     else:
         direction = direction_or_df
-    return(plot_windrose_np(direction, var, kind=kind, **kwargs))
+    return (plot_windrose_np(direction, var, kind=kind, **kwargs))
 
-def plot_windrose_df(df, kind='contour', var_name=VAR_DEFAULT, direction_name=DIR_DEFAULT, **kwargs):
+
+def plot_windrose_df(df, kind='contour', var_name=VAR_DEFAULT,
+                     direction_name=DIR_DEFAULT, **kwargs):
     var = df[var_name].values
     direction = df[direction_name].values
-    return(plot_windrose_np(direction, var, **kwargs))
+    return (plot_windrose_np(direction, var, **kwargs))
 
-def plot_windrose_np(direction, var, kind='contour', clean_flag=True, **kwargs):
+
+def plot_windrose_np(direction, var, kind='contour', clean_flag=True,
+                     **kwargs):
     if kind in D_KIND_PLOT.keys():
         f_plot = D_KIND_PLOT[kind]
     else:
-        raise(Exception("kind=%r but it must be in %r" % (kind, d.keys())))
-    #if f_clean is not None:
+        raise (
+        Exception("kind=%r but it must be in %r" % (kind, d.keys())))
+    # if f_clean is not None:
     #    df = f_clean(df)
-    #var = df[var_name].values
-    #direction = df[direction_name].values
+    # var = df[var_name].values
+    # direction = df[direction_name].values
     if clean_flag:
         var, direction = clean(var, direction)
     ax = f_plot(direction=direction, var=var, **kwargs)
