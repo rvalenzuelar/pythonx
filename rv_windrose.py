@@ -158,7 +158,7 @@ class WindroseAxes(PolarAxes):
             rmax=np.max(np.sum(self._info['table'], axis=0)))
         self.set_radii_angle(angle=self.radii_angle)
 
-    def legend(self, loc='lower left', **kwargs):
+    def legend(self, loc='lower left', symbol=None, **kwargs):
         """
         Sets the legend location and her properties.
         The location codes are
@@ -212,7 +212,8 @@ class WindroseAxes(PolarAxes):
         def get_labels():
             labels = np.copy(self._info['bins'])
             # print labels
-            labels = ["[%.1f : %0.1f[" % (labels[i], labels[i + 1]) \
+            template = "%.1f $\leq$ {} $<$ %.1f".format(symbol)
+            labels = [template % (labels[i], labels[i + 1]) \
                       for i in range(len(labels) - 1)]
             return labels
 

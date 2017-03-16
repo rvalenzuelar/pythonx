@@ -42,7 +42,7 @@ def specs(rows=None, cols=None, id_panels=True,
             if name_loc == 'upper-left':
                 loc_coord = (0.05, 0.90)
             elif name_loc == 'upper-right':
-                loc_coord = (0.90, 0.90)
+                loc_coord = (0.85, 0.90)
         else:
             loc_coord = name_loc
 
