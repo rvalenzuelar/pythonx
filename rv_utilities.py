@@ -50,7 +50,7 @@ def add_colorbar(ax, im, size=None, loc='right',label=None,
         '''
         cax.remove()
     
-    if loc in ['top','bottom']:
+    if loc in ['top', 'bottom']:
         cbar.ax.xaxis.set_ticks_position(loc)
         cbar.ax.xaxis.set_label_position(loc)
         cbar.ax.xaxis.set_tick_params(labelsize=fontsize)
@@ -110,25 +110,20 @@ def add_colorbar(ax, im, size=None, loc='right',label=None,
 
     return cbar
 
-def add_floating_colorbar(fig=None, im=None, labelsize=25,label=None,
+def add_floating_colorbar(fig=None, im=None, position=None,
+                          loc=None, fontsize=25, label=None,
                           ticks=None, ticklabels=None,
-                          position=None,loc=None):
+                          clean_floating=True
+                          ):
 
-    import mpl_toolkits.axisartist as AA
-#    from matplotlib import rcParams
-#    rcParams['ytick.direction'] = 'out'
+    axf = fig.add_axes(position)
+    cbar = add_colorbar(axf, im, loc=loc, fontsize=fontsize,
+                        label=label, ticks=ticks,
+                        ticklabels=ticklabels)
+    if clean_floating:
+        axf.remove()
 
-
-    axaa = AA.Axes(fig,position)
-    axaa.tick_params(labelsize=labelsize)
-    add_colorbar(axaa,im,
-                 label=label,
-                 ticks=ticks,
-                 ticklabels=ticklabels,
-                 loc=loc)
-    fig.add_axes(axaa)
-    axaa.remove() # leave only colorbar
-
+    return cbar
 
 def format_xaxis(ax, time_array, delta_hours=3):
     
@@ -373,6 +368,7 @@ def discrete_cmap(N, norm_range=None,base_cmap=None):
     else:
         cm = base.from_list(cmap_name, color_list, N)
 
+
     return cm
 
 def linear_reg(X,Y,const):
@@ -393,9 +389,74 @@ def linear_reg(X,Y,const):
     model = sm.OLS(Y,X)
     result = model.fit()          
     return result
-    
-    
 
+
+def UO_colormap(name='UO_BrBu_10',txt_path=None,normalized=True):
+
+    from matplotlib.colors import ListedColormap
+    import numpy as np
+
+    lines = list()
+    file = open(txt_path+'/{}.txt'.format(name))
+    for line in file:
+        lines.append(line.rstrip())
+
+    ''' remove header'''
+    lines = lines[2:]
+
+    rgb_list = list()
+    for l in lines:
+        row = l.split('    ')[-3:]
+        rgb_list.append([int(r) for r in row])
+
+    rgb_list = np.array(rgb_list)
+    if normalized is True:
+        rgb_list = rgb_list/256.
+    cmap = ListedColormap(rgb_list,name='UO_BrBu_10', N=10)
+
+    return cmap
+
+def NY_colormap(file_path=None, normalized=True):
+
+    from matplotlib.colors import ListedColormap
+    import numpy as np
+
+    # lines = list()
+    # file = open(file_path)
+    # for line in file:
+    #     lines.append(line.rstrip())
+    #
+    # ''' remove header'''
+    # lines = lines[2:]
+    #
+    # rgb_list = list()
+    # for l in lines:
+    #     row = l.split('    ')[-3:]
+    #     rgb_list.append([int(r) for r in row])
+    #
+    # rgb_list = np.array(rgb_list)
+    # if normalized is True:
+    #     rgb_list = rgb_list/256.
+    # cmap = ListedColormap(rgb_list,name='UO_BrBu_10',N=10)
+
+    # return cmap
+
+def get_period(year_range=list(), monthday_range=list(),freq=None):
+
+    import pandas as pd
+
+    md_ini = monthday_range[0]
+    md_end = monthday_range[1]
+
+    try:
+        rng = [r for y in range(year_range[0], year_range[1]) for r in
+               pd.date_range('{}-{}'.format(y, md_ini),
+                             '{}-{}'.format(y, md_end),
+                             freq=freq)
+               ]
+        return rng
+    except ValueError:
+        print 'Check if day is valid for month '
 
 
 

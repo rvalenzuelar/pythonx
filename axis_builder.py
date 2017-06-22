@@ -19,8 +19,8 @@ def specs(rows=None, cols=None, id_panels=True,
           figsize=None, return_grid=False, name_loc='upper-left',
           hide_labels_in=None, hide_xlabels_in=None,
           hide_ylabels_in=None, show_grid=False,
-          hspace=None, wspace=None,left=None,right=None,
-          top=None, bottom=None):
+          hspace=None, wspace=None, left=None, right=None,
+          top=None, bottom=None, sharex=False, sharey=False):
 
     if figsize is None:
         fig = plt.figure()
@@ -29,12 +29,28 @@ def specs(rows=None, cols=None, id_panels=True,
 
     gs = gridspec.GridSpec(rows, cols,
                            width_ratios=col_ratio,
-                           height_ratios=row_ratio
+                           height_ratios=row_ratio,
                            )
 
     axes = list()
-    for ax in gs:
-        axes.append(plt.subplot(ax))
+    for n, g in enumerate(gs):
+        if n == 0:
+            ax0 = fig.add_subplot(g)
+            axes.append(ax0)
+        else:
+            ''' not working, need to check why'''
+            if sharex and sharey:
+                ax = fig.add_subplot(g,
+                                    sharex=ax0,
+                                    sharey=ax0)
+            elif sharex:
+                ax = fig.add_subplot(g, sharex=ax0)
+            elif sharey:
+                ax = fig.add_subplot(g, sharey=ax0)
+            else:
+                ax = fig.add_subplot(g)
+            axes.append(ax)
+
     axes = np.array(axes)
 
     if id_panels:
