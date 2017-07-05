@@ -277,22 +277,35 @@ def datenum_to_datetime(datenum):
 
     source: https://gist.github.com/vicow
     """
-    from datetime import datetime,timedelta
-#	import numpy as np
+
+    from datetime import datetime, timedelta
+    import numpy as np
+
+    if type(datenum) == np.ndarray:
+        datenum = datenum.squeeze()
+        datetime_array = []
+        for d in datenum:
+            val = parse_datenum(d)
+            datetime_array.append(val)
+        return np.array(datetime_array)
+    else:
+        datetime_val = parse_datenum(datenum)
+        return datetime_val
+
+def parse_datenum(datenum):
+
+    from datetime import datetime, timedelta
 
     days = datenum % 1
     hours = days % 1 * 24
     minutes = hours % 1 * 60
     seconds = minutes % 1 * 60
     return datetime.fromordinal(int(datenum)) \
-        + timedelta(days=int(days)) \
-        + timedelta(hours=int(hours)) \
-        + timedelta(minutes=int(minutes)) \
-        + timedelta(seconds=round(seconds)) \
-        - timedelta(days=366)
-
-#    return datetime.fromordinal(int(datenum))+ timedelta(days=int(days))    + timedelta(hours=int(hours))+ timedelta(minutes=int(minutes)) +timedelta(seconds=int(seconds))-timedelta(days=366)
-
+               + timedelta(days=int(days)) \
+               + timedelta(hours=int(hours)) \
+               + timedelta(minutes=int(minutes)) \
+               + timedelta(seconds=round(seconds)) \
+               - timedelta(days=366)
 
 
 def add_subplot_axes(ax, rect, axisbg='w'):
