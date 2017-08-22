@@ -34,7 +34,7 @@ def circle(m, olat, olon, radius):
     X.append(X[0])
     Y.append(Y[0])
 
-    proj_x, proj_y = m(X,Y)
+    proj_x, proj_y = m(X, Y)
     return zip(proj_x, proj_y)
     
 def sector(m, olat, olon, radius, sector):
