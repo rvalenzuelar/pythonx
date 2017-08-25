@@ -5,7 +5,6 @@
     raul.valenzuela@colorado.edu
 '''
 
-
 def add_colorbar(ax, im, size=None, loc='right',label=None,
                  ticks=None, ticklabels=None, pad=None,
                  fontsize=14, invisible=False, labelpad=None,
