@@ -401,7 +401,7 @@ def discrete_cmap(N, norm_range=None,base_cmap=None):
 
     return cm
 
-def linear_reg(X, Y, const):
+def linear_reg(X, Y, const=False):
     
     import statsmodels.api as sm    
     import numpy as np
