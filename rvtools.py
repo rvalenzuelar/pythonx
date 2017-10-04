@@ -123,14 +123,8 @@ def add_floating_colorbar(fig=None, im=None, position=None,
                           ticklab_inside=False, ticklab_color=None,
                           tick_color=None
                           ):
-    """
-        Position refers to the axis position but we are interested in
-        the cbar position. So, for top cbars we substract the axis hgt
-        to the bottom value
-    """
-    lef, bot, wdt, hgt = position
-    cbar_pos = [lef, bot-hgt, wdt, hgt]
-    axf = fig.add_axes(cbar_pos)
+
+    axf = fig.add_axes(position)
     cbar = add_colorbar(axf, im, loc=loc, fontsize=fontsize,
                         label=label, labelpad=labelpad, ticks=ticks,
                         ticklabels=ticklabels,
