@@ -5,7 +5,6 @@
     raul.valenzuela@colorado.edu
 '''
 
-
 def add_colorbar(ax, im, size=None, loc='right',label=None,
                  ticks=None, ticklabels=None, pad=None,
                  fontsize=14, invisible=False, labelpad=None,
@@ -396,7 +395,7 @@ def discrete_cmap(N, norm_range=None,base_cmap=None):
 
     return cm
 
-def linear_reg(X, Y, const):
+def linear_reg(X, Y, const=False):
     
     import statsmodels.api as sm    
     import numpy as np
