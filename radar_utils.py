@@ -161,28 +161,54 @@ def beam_hgt(target_elev):
 
     import pandas as pd
 
+    te = map(float,target_elev)
+
     H = []
     ranges = np.arange(0, 101)
-    elev_angles = np.array([0,0.5]+range(1,11))  # [deg]
+    elev_angles = np.array([0,0.5]+range(1,15))  # [deg]
+
+    rans, eles = np.meshgrid(ranges,elev_angles)
+    beams = beamhgt_stdrefraction(rans, eles)
 
     fig, ax = plt.subplots()
 
     ''' reference elevation angles '''
-    for e in elev_angles:
-        elev = [float(e)] * len(ranges)
-        H = map(beamhgt_stdrefraction, ranges, elev)
-        ax.plot(ranges, H, color='b')
-        ax.text(ranges[50], H[50], str(e))
+    elang = list(elev_angles)
 
-    ''' target elevation angle '''
-    for te in target_elev:
-        te = float(te)
-        telev = np.array([float(te)] * len(ranges))
-        H_target = map(beamhgt_stdrefraction, ranges, telev)
-        ax.plot(ranges, H_target, color='r')
+    range_loc = 50  # [km]
+    h_loc = list(beams[:-1,range_loc])
+    try:
+        rem = [elang.index(x) for x in te]
+        nones=[h_loc.pop(x) for x in rem]
+    except ValueError:
+        pass
+    
+    try:
+        nones = [elang.remove(e) for e in te]
+    except:
+        pass
 
-        ''' filled area '''
+    ha=ax.contour(rans,beams,eles,
+                  levels=elang,
+                  colors='b')
+
+    locations=zip([range_loc]*len(h_loc), 
+                    h_loc)
+    plt.clabel(ha,fmt='%1.1f',
+                manual=locations
+                )
+
+    ''' target elevation '''
+    ha=ax.contour(rans,beams,eles,
+                  levels=te,
+                  colors='r')
+    plt.clabel(ha,fmt='%1.1f')
+
+
+    ''' filled area '''
+    for e in te:
         beam_width = 0.9  # [deg]
+        telev = np.array([e]*len(ranges))
         y_top= map(beamhgt_stdrefraction, ranges, telev + (beam_width/2.))
         y_bot= map(beamhgt_stdrefraction, ranges, telev - (beam_width/2.))
         y_top = np.array(y_top)
@@ -199,8 +225,8 @@ def beam_hgt(target_elev):
     plt.grid(True)
     plt.show()
 
-    S = pd.Series(H_target,index=ranges)
-    return S
+    # S = pd.Series(H_target,index=ranges)
+    # return S
 
 def beamhgt_stdrefraction(r, el):
     ' From Rinehart p. 62'

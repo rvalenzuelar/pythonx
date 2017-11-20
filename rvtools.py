@@ -294,6 +294,7 @@ def datenum_to_datetime(datenum):
     if type(datenum) == np.ndarray:
         datenum = datenum.squeeze()
         datetime_array = []
+        print datenum
         for d in datenum:
             val = parse_datenum(d)
             datetime_array.append(val)
