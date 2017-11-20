@@ -45,7 +45,7 @@ def main(args):
         ' implement range-height plot'
         # plt.plot([3,5],[3,10])
         # plt.show()
-        beam_hgt(args[2])
+        beam_hgt(args[2:])
 
 
 def make_dir_and_copy(scan, scan_mode):
@@ -163,20 +163,33 @@ def beam_hgt(target_elev):
 
     H = []
     ranges = np.arange(0, 101)
-    elev_angles = range(0, 11)  # [deg]
-#    vert_beam_width = 1.  # [deg]
+    elev_angles = np.array([0,0.5]+range(1,11))  # [deg]
 
     fig, ax = plt.subplots()
 
-    te = float(target_elev)
-    el = [float(te)] * len(ranges)
-    H_target = map(beamhgt_stdrefraction, ranges, el)
-    ax.plot(ranges, H_target, color='r')
+    ''' reference elevation angles '''
     for e in elev_angles:
-        el = [float(e)] * len(ranges)
-        H = map(beamhgt_stdrefraction, ranges, el)
+        elev = [float(e)] * len(ranges)
+        H = map(beamhgt_stdrefraction, ranges, elev)
         ax.plot(ranges, H, color='b')
         ax.text(ranges[50], H[50], str(e))
+
+    ''' target elevation angle '''
+    for te in target_elev:
+        te = float(te)
+        telev = np.array([float(te)] * len(ranges))
+        H_target = map(beamhgt_stdrefraction, ranges, telev)
+        ax.plot(ranges, H_target, color='r')
+
+        ''' filled area '''
+        beam_width = 0.9  # [deg]
+        y_top= map(beamhgt_stdrefraction, ranges, telev + (beam_width/2.))
+        y_bot= map(beamhgt_stdrefraction, ranges, telev - (beam_width/2.))
+        y_top = np.array(y_top)
+        y_bot = np.array(y_bot)
+        ax.fill_between(ranges, y_top, y_bot, where=y_top >= y_bot, 
+                        facecolor='green', alpha =0.5)
+
     ax.set_xticks(np.arange(0, 100, 10))
     ax.set_yticks(np.arange(0, 12, 0.5))
     ax.set_ylim([0, 10])

@@ -5,12 +5,11 @@
     raul.valenzuela@colorado.edu
 '''
 
-
 def add_colorbar(ax, im, size=None, loc='right',label=None,
                  ticks=None, ticklabels=None, pad=None,
                  fontsize=14, invisible=False, labelpad=None,
-                 ticks_inside=False, tick_color=None,
-                 ticks_everyother=False):
+                 ticklab_inside=False, ticklab_color=None,
+                 ticks_everyother=False, tick_color=None):
 
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -32,10 +31,10 @@ def add_colorbar(ax, im, size=None, loc='right',label=None,
 
     if loc in ['top','bottom']:
         ori = 'horizontal'
-        if labelpad is None: labelpad=4
+        if labelpad is None: labelpad = 4
     if loc in ['right','left']:    
         ori = 'vertical'
-        if labelpad is None: labelpad=10
+        if labelpad is None: labelpad = 10
 
     if ticks is None:
         cbar = plt.colorbar(im, cax=cax, orientation=ori)
@@ -53,7 +52,11 @@ def add_colorbar(ax, im, size=None, loc='right',label=None,
     if loc in ['top', 'bottom']:
         cbar.ax.xaxis.set_ticks_position(loc)
         cbar.ax.xaxis.set_label_position(loc)
-        cbar.ax.xaxis.set_tick_params(labelsize=fontsize)
+        if tick_color is not None:
+            cbar.ax.xaxis.set_tick_params(labelsize=fontsize,
+                                          color=tick_color)
+        else:
+            cbar.ax.xaxis.set_tick_params(labelsize=fontsize)
         cbar.ax.set_xlabel(label,
                            fontdict=dict(size=fontsize),
                             labelpad=labelpad)      
@@ -82,9 +85,11 @@ def add_colorbar(ax, im, size=None, loc='right',label=None,
     if loc == 'bottom':
         ax.xaxis.tick_top()
 
-    if ticks_inside:
+    if ticklab_inside:
         if ori == 'horizontal':
-            cbar.ax.xaxis.set_tick_params(pad=-15)
+            hgt = ax.get_position().height
+            hpad = (-1.5*hgt)-5.3
+            cbar.ax.xaxis.set_tick_params(pad=hpad)
             for label in cbar.ax.xaxis.get_ticklabels()[::2]:
                 label.set_visible(False)
         else:
@@ -104,22 +109,27 @@ def add_colorbar(ax, im, size=None, loc='right',label=None,
 
     if tick_color is not None:
         if ori == 'horizontal':
-            cbar.ax.xaxis.set_tick_params(labelcolor=tick_color)
+            cbar.ax.xaxis.set_tick_params(labelcolor=ticklab_color)
         else:
-            cbar.ax.yaxis.set_tick_params(labelcolor=tick_color)
+            cbar.ax.yaxis.set_tick_params(labelcolor=ticklab_color)
 
     return cbar
 
 def add_floating_colorbar(fig=None, im=None, position=None,
                           loc=None, fontsize=25, label=None,
                           ticks=None, ticklabels=None,
-                          clean_floating=True
+                          clean_floating=True, labelpad=None,
+                          ticklab_inside=False, ticklab_color=None,
+                          tick_color=None
                           ):
 
     axf = fig.add_axes(position)
     cbar = add_colorbar(axf, im, loc=loc, fontsize=fontsize,
-                        label=label, ticks=ticks,
-                        ticklabels=ticklabels)
+                        label=label, labelpad=labelpad, ticks=ticks,
+                        ticklabels=ticklabels,
+                        ticklab_color=ticklab_color,
+                        ticklab_inside=ticklab_inside,
+                        tick_color=tick_color)
     if clean_floating:
         axf.remove()
 
@@ -281,7 +291,7 @@ def datenum_to_datetime(datenum):
     from datetime import datetime, timedelta
     import numpy as np
 
-    if type(datenum) == np.ndarray:
+    if type(datenum) == np.ndarray and datenum.size >1:
         datenum = datenum.squeeze()
         datetime_array = []
         for d in datenum:
@@ -291,6 +301,7 @@ def datenum_to_datetime(datenum):
     else:
         datetime_val = parse_datenum(datenum)
         return datetime_val
+
 
 def parse_datenum(datenum):
 
@@ -384,17 +395,17 @@ def discrete_cmap(N, norm_range=None,base_cmap=None):
 
     return cm
 
-def linear_reg(X,Y,const):
+def linear_reg(X, Y, const=False):
     
     import statsmodels.api as sm    
     import numpy as np
     
-    X=np.array(X)    
-    Y=np.array(Y)    
+    X = np.array(X)
+    Y = np.array(Y)
     
     bad = np.isnan(X) | np.isnan(Y)
-    X=X[~bad]    
-    Y=Y[~bad]    
+    X = X[~bad]
+    Y = Y[~bad]
     
     if const is True:
         X = sm.add_constant(X)
