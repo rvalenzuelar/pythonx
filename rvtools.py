@@ -291,7 +291,7 @@ def datenum_to_datetime(datenum):
     from datetime import datetime, timedelta
     import numpy as np
 
-    if type(datenum) == np.ndarray:
+    if type(datenum) == np.ndarray and datenum.size >1:
         datenum = datenum.squeeze()
         datetime_array = []
         print datenum
