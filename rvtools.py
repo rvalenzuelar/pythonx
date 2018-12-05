@@ -9,7 +9,8 @@ def add_colorbar(ax, im, size=None, loc='right',label=None,
                  ticks=None, ticklabels=None, pad=None,
                  fontsize=14, invisible=False, labelpad=None,
                  ticklab_inside=False, ticklab_color=None,
-                 ticks_everyother=False, tick_color=None):
+                 ticks_everyother=False, tick_color=None,
+                 **kwargs):
 
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -18,16 +19,16 @@ def add_colorbar(ax, im, size=None, loc='right',label=None,
 
     if size and loc:
         if pad is None: pad=0.05
-        cax = divider.append_axes(loc, size=size, pad=pad)
+        cax = divider.append_axes(loc, size=size, pad=pad, **kwargs)
     elif size:
         if pad is None: pad=0.1
-        cax = divider.append_axes('right', size=size, pad=pad)
+        cax = divider.append_axes('right', size=size, pad=pad, **kwargs)
     elif loc:
         if pad is None: pad=0.05
-        cax = divider.append_axes(loc, size='2%', pad=pad)
+        cax = divider.append_axes(loc, size='2%', pad=pad, **kwargs)
     else:
         if pad is None: pad=0.1
-        cax = divider.append_axes("right", size='2%', pad=pad)
+        cax = divider.append_axes("right", size='2%', pad=pad, **kwargs)
 
     if loc in ['top','bottom']:
         ori = 'horizontal'
@@ -52,11 +53,13 @@ def add_colorbar(ax, im, size=None, loc='right',label=None,
     if loc in ['top', 'bottom']:
         cbar.ax.xaxis.set_ticks_position(loc)
         cbar.ax.xaxis.set_label_position(loc)
+
         if tick_color is not None:
             cbar.ax.xaxis.set_tick_params(labelsize=fontsize,
                                           color=tick_color)
         else:
             cbar.ax.xaxis.set_tick_params(labelsize=fontsize)
+
         cbar.ax.set_xlabel(label,
                            fontdict=dict(size=fontsize),
                             labelpad=labelpad)      
@@ -67,7 +70,7 @@ def add_colorbar(ax, im, size=None, loc='right',label=None,
                             labelpad=labelpad)
     
     if ticklabels is not None:
-        if isinstance(ticklabels[0],str):
+        if isinstance(ticklabels[0], str):
             cbar.set_ticklabels(ticklabels)
         else:            
             strticklabs = list()
@@ -122,6 +125,10 @@ def add_floating_colorbar(fig=None, im=None, position=None,
                           ticklab_inside=False, ticklab_color=None,
                           tick_color=None
                           ):
+
+    """
+        position = [x0,y0,width, height]
+    """
 
     axf = fig.add_axes(position)
     cbar = add_colorbar(axf, im, loc=loc, fontsize=fontsize,
@@ -359,7 +366,7 @@ def add_subplot_axes(ax, rect, axisbg='w'):
     return subax
 
 
-def discrete_cmap(N, norm_range=None,base_cmap=None):
+def discrete_cmap(N, norm_range=None, base_cmap=None):
     
     ''' 
     Create an N-bin discrete colormap from the specified input map
@@ -484,7 +491,151 @@ def get_period(year_range=list(), monthday_range=list(),freq=None):
         print 'Check if day is valid for month '
 
 
+def windowed_view(arr, window, overlap, how=None, axis=None):
+
+    """
+
+    Source:
+    https://stackoverflow.com/questions/18247009/
+    window-overlap-in-pandas
+
+    :param arr: 1D array (can be pandas series)
+    :param window: (windows length)
+    :param overlap: (overlap size)
+    :return: numpy 2D array with wind groups in each row
+
+    """
+
+    import numpy as np
+    from numpy.lib.stride_tricks import as_strided
+
+    arr = np.asarray(arr)
+    window_step = window - overlap
+    new_shape = arr.shape[:-1] + ((arr.shape[-1] - overlap) // window_step,
+                                  window)
+    new_strides = (arr.strides[:-1] + (window_step * arr.strides[-1],) +
+                   arr.strides[-1:])
+
+    result = as_strided(arr, shape=new_shape, strides=new_strides)
+
+    if how == 'mean':
+        result = result.mean(axis=axis)
+    elif how == 'max':
+        result = result.max(axis=axis)
+
+    return result
 
 
+def windowed_view2d(arr, window, overlap, how=None, axis=None):
+
+    """
+
+    Source:
+    https://stackoverflow.com/questions/18247009/
+    window-overlap-in-pandas
+
+    :param arr: 2D array (can be pandas series)
+    :param window: (windows length)
+    :param overlap: (overlap size)
+    :return: numpy 2D array with wind groups in each row
+
+    """
+
+    import numpy as np
+    from numpy.lib.stride_tricks import as_strided
+
+    arr = np.asarray(arr)
+    window_step = window - overlap
+    new_shape = arr.shape[:-1] + ((arr.shape[-1] - overlap) // window_step,
+                                  window)
+    new_strides = (arr.strides[:-1] + (window_step * arr.strides[-1],) +
+                   arr.strides[-1:])
+
+    result = as_strided(arr, shape=new_shape, strides=new_strides)
+
+    if how == 'mean':
+        result = result.mean(axis=axis)
+    elif how == 'max':
+        result = result.max(axis=axis)
+
+    return result
+
+def add_reginfo(reg, X, ax, pos, color=None):
+
+    if len(reg.params) > 1:
+        Yreg = reg.params[0] + reg.params[1] * X
+        ax.plot(X, Yreg, color=color)
+        fmt = 'y={:1.3f}+x{:1.3f}\nN={:1.0f}\nRsqr={:1.2}'
+        txt = fmt.format(reg.params[0], reg.params[1], reg.nobs,
+                         reg.rsquared)
+    else:
+        Yreg = reg.params[0] * X
+        ax.plot(X, Yreg, color=color)
+        fmt = 'y=x{:1.3f}\nN={:1.0f}\nRsqr={:1.2}'
+        txt = fmt.format(reg.params[0], reg.nobs,
+                         reg.rsquared)
+
+    if color is None:
+        color='k'
+
+    ax.text(pos[0], pos[1], txt, color=color,
+            transform=ax.transAxes)
 
 
+def label_serie(serie, threshold=None, n_gaps=None):
+
+    """
+
+    Classify clusters in the series given a threshold and
+    number of gaps in the serie.
+
+    :param serie: pandas serie
+    :param threshold: in units of the serie (e.g. mm)
+    :param n_gaps:
+    :return: a dataframe with new labeled column
+    """
+
+    import pandas as pd
+
+    def classifier(x):
+        if x >= threshold:
+            return 1
+        else:
+            return 0
+
+    bo = serie.apply(classifier)
+    rol = bo.rolling(n_gaps, min_periods=0, center=True).sum()
+
+    labels = list()
+    count = 0
+    new_label = True
+    for r, b in zip(rol.values, bo.values):
+        # if (r < 2) & (b == 0):
+        if (r < 1) & (b == 0):
+            labels.append(0)
+            new_label = True
+        else:
+            if new_label:
+                count += 1
+                labels.append(count)
+                new_label = False
+            else:
+                labels.append(count)
+
+    labels = pd.Series(labels, index=serie.index)
+    labels.name = 'labeled'
+
+    return pd.concat([serie, labels], axis=1)
+
+
+def brew_cmap(colors_list, n_bin):
+
+    from matplotlib.colors import LinearSegmentedColormap
+
+    cmap_name = 'custom_cmap'
+
+    # Create the colormap
+    cm = LinearSegmentedColormap.from_list(
+        cmap_name, colors_list, N=n_bin)
+    
+    return cm

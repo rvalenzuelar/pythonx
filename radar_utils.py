@@ -16,7 +16,7 @@ import os
 import shutil
 import matplotlib.pyplot as plt
 import numpy as np
-
+import xarray as xr
 from datetime import datetime
 from glob import glob
 
@@ -161,79 +161,121 @@ def beam_hgt(target_elev):
 
     import pandas as pd
 
+    xmax = 30  # [km] max range
+    ymax = 10 # [km] max altitude
+    Ho = 0.010 # [km] radar height
+    beam_width = 2.7  # [deg]
+    max_range = 30
+
     te = map(float,target_elev)
 
     H = []
-    ranges = np.arange(0, 101)
-    elev_angles = np.array([0,0.5]+range(1,15))  # [deg]
 
-    rans, eles = np.meshgrid(ranges,elev_angles)
-    beams = beamhgt_stdrefraction(rans, eles)
+    ranges = np.arange(0, max_range+0.25, 0.25)
+    # elev_angles = np.array([0, 0.5]+range(1, 15))  # [deg]
+    elev_angles = np.round(np.arange(0, 100, 0.1), 1)  # [deg]
+
+    rans, eles = np.meshgrid(ranges, elev_angles)
+    beams = beamhgt_stdrefraction(rans, eles, Ho)
+    da = xr.DataArray(beams.T,coords=[ranges, elev_angles],
+                    dims=['range','elev'])
 
     fig, ax = plt.subplots()
 
     ''' reference elevation angles '''
-    elang = list(elev_angles)
+    # elang = list(elev_angles)
 
-    range_loc = 50  # [km]
-    h_loc = list(beams[:-1,range_loc])
-    try:
-        rem = [elang.index(x) for x in te]
-        nones=[h_loc.pop(x) for x in rem]
-    except ValueError:
-        pass
+    # range_loc = 50  # [km]
+    # h_loc = list(beams[:-1,range_loc])
+    # try:
+    #     rem = [elang.index(x) for x in te]
+    #     nones=[h_loc.pop(x) for x in rem]
+    # except ValueError:
+    #     pass
     
-    try:
-        nones = [elang.remove(e) for e in te]
-    except:
-        pass
+    # try:
+    #     nones = [elang.remove(e) for e in te]
+    # except:
+    #     pass
 
-    ha=ax.contour(rans,beams,eles,
-                  levels=elang,
-                  colors='b')
+    ''' add reference elevations '''
+    # ha=ax.contour(rans,beams,eles,
+    #               levels=elang,
+    #               colors='b')
 
-    locations=zip([range_loc]*len(h_loc), 
-                    h_loc)
-    plt.clabel(ha,fmt='%1.1f',
-                manual=locations
-                )
+    ''' add labels to beams '''
+    # da=xr.DataArray(beams.T,coords=[rans[0,:], eles[:,0]],
+    #                 dims=['rans','eles'])
+    # for el in elev_angles[1:6]:
+    #     ysel = da.sel(rans=xmax, eles=el)        
+    #     ax.text(xmax, ysel, str(el), ha='left',va='center', 
+    #             color='b', weight='bold')
+
+    # return rans, beams, eles
+
+    # locations=zip([range_loc]*len(h_loc), 
+    #                 h_loc)
+    # plt.clabel(ha,fmt='%1.1f',
+    #             # manual=locations
+    #             )
+
+
+
+    # for el in  elev_angles[8:]:
+    #     xsel = da.sel(rans=ymax, eles=el)        
+    #     ax.text(xsel, ymax, str(el), ha='left',va='center', 
+    #             color='b', weight='bold')
+
+    # ax.text(0.5, 0.01, 'Test', color='red', 
+    #     bbox=dict(facecolor='none', edgecolor='red'))
 
     ''' target elevation '''
-    ha=ax.contour(rans,beams,eles,
-                  levels=te,
-                  colors='r')
-    plt.clabel(ha,fmt='%1.1f')
+    # ha=ax.contour(rans,beams,eles,
+    #               levels=te,
+    #               colors='r')
+    # # ysel = da.sel(rans=xmax, eles=te)
+    # # print(te)
+    # ysel = beamhgt_stdrefraction(xmax, te[0], Ho)
+    # ax.text(xmax, ysel, str(te[0]), ha='left',va='center', 
+    #             color='r', weight='bold')
+    # # plt.clabel(ha,fmt='%1.1f')
+
 
 
     ''' filled area '''
     for e in te:
-        beam_width = 0.9  # [deg]
+        ax.plot(da.range, da.sel(elev=e), color='r')
         telev = np.array([e]*len(ranges))
-        y_top= map(beamhgt_stdrefraction, ranges, telev + (beam_width/2.))
-        y_bot= map(beamhgt_stdrefraction, ranges, telev - (beam_width/2.))
+        y_top= map(beamhgt_stdrefraction, ranges, telev + (beam_width/2.), 
+                    [Ho]*len(ranges))
+        y_bot= map(beamhgt_stdrefraction, ranges, telev - (beam_width/2.), 
+                    [Ho]*len(ranges))
         y_top = np.array(y_top)
         y_bot = np.array(y_bot)
         ax.fill_between(ranges, y_top, y_bot, where=y_top >= y_bot, 
                         facecolor='green', alpha =0.5)
 
-    ax.set_xticks(np.arange(0, 100, 10))
-    ax.set_yticks(np.arange(0, 12, 0.5))
-    ax.set_ylim([0, 10])
-    ax.set_xlim([0, 100])
+    ax.set_ylim([0, ymax])
+    ax.set_xlim([0, xmax])
+
+    # ax.set_xticks(np.arange(0, 100, 10))
+    # ax.set_yticks(np.arange(0, 12, 0.5))
+
     ax.set_xlabel('range [km]')
     ax.set_ylabel('beam height AGL [km]')
+    plt.suptitle('Beam width: {}deg'.format(beam_width))
     plt.grid(True)
     plt.show()
 
     # S = pd.Series(H_target,index=ranges)
     # return S
 
-def beamhgt_stdrefraction(r, el):
+def beamhgt_stdrefraction(r, el, Ho):
     ' From Rinehart p. 62'
 
     ER = 6371  # [km] Earth Radius
     R = (4 / 3.) * ER
-    Ho = 0  # [km] radar's altitude
+    # Ho = 0  # [km] radar's altitude
     # print [r,el]
     r2 = r*r
     R2 = R*R
@@ -262,4 +304,5 @@ def usage():
     """
     print S
 
-main(sys.argv)
+if __name__ == 'main':
+    main(sys.argv)
