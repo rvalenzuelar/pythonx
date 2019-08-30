@@ -301,7 +301,7 @@ def datenum_to_datetime(datenum):
     if type(datenum) == np.ndarray and datenum.size >1:
         datenum = datenum.squeeze()
         datetime_array = []
-        print datenum
+        print(datenum)
         for d in datenum:
             val = parse_datenum(d)
             datetime_array.append(val)
@@ -488,7 +488,7 @@ def get_period(year_range=list(), monthday_range=list(),freq=None):
                ]
         return rng
     except ValueError:
-        print 'Check if day is valid for month '
+        print('Check if day is valid for month ')
 
 
 def windowed_view(arr, window, overlap, how=None, axis=None):
@@ -639,3 +639,21 @@ def brew_cmap(colors_list, n_bin):
         cmap_name, colors_list, N=n_bin)
     
     return cm
+
+
+def find_nearest_index(array, values):
+
+    """
+        https://stackoverflow.com/questions/2566412/
+        find-nearest-value-in-numpy-array
+    """
+    import numpy as np 
+
+    array = np.asarray(array)
+    idxs = list()
+    for value in values:
+        idx = (np.abs(array - value)).argmin()
+        idxs.append(idx)
+    
+    return np.array(idxs)
+
